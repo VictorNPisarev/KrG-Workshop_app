@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:workshop_app/models/orderInProduct.dart';
 import '../models/order.dart';
 
 class OrderCard extends StatelessWidget
 {
-    final Order order;
+    final OrderInProduct orderInProduct;
     final VoidCallback? onCompletePressed;
     final VoidCallback? onStartPressed;
     final bool showCompleteButton;
@@ -11,7 +12,7 @@ class OrderCard extends StatelessWidget
     
     const OrderCard({
         super.key,
-        required this.order,
+        required this.orderInProduct,
         this.onCompletePressed,
         this.onStartPressed,
         this.showCompleteButton = false,
@@ -36,22 +37,22 @@ class OrderCard extends StatelessWidget
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                                 Text(
-                                    'Заказ #${order.orderNumber}',
+                                    'Заказ #${orderInProduct.order!.orderNumber}',
                                     style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                     ),
                                 ),
-                                _buildStatusChip(order.status),
+                                _buildStatusChip(orderInProduct.status),
                             ],
                         ),
                         
                         const SizedBox(height: 8),
                         
                         // Информация о заказе
-                        Text('Срок: ${_formatDate(order.readyDate)}'),
-                        Text('Окна: ${order.winCount}'),
-                        Text('Щитовые: ${order.plateCount}'),
+                        Text('Срок: ${_formatDate(orderInProduct.order!.readyDate)}'),
+                        Text('Окна: ${orderInProduct.order!.winCount}'),
+                        Text('Щитовые: ${orderInProduct.order!.plateCount}'),
                         
                         // Кнопки действий (если нужны)
                         if (showCompleteButton || showStartButton)

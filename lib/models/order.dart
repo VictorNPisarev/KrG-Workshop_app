@@ -1,6 +1,8 @@
+import 'package:uuid/uuid.dart';
 class Order
 {
-    final int id;
+    //final String id = Uuid().v4();
+    final String id;
     final String orderNumber;
     final DateTime readyDate;
     final int winCount;
@@ -10,7 +12,6 @@ class Order
     final bool econom;
     final bool claim;
     final bool onlyPayed;
-    final OrderStatus status;
     
     Order({
         required this.id,
@@ -23,26 +24,13 @@ class Order
         required this.econom,
         required this.claim,
         required this.onlyPayed,
-        required this.status,
     });
     
     // Метод для создания объекта из JSON (будет полезен позже)
     factory Order.fromJson(Map<String, dynamic> json)
     {
-        /*return Order(
-            id: json['id'] as int,
-            orderNumber: json['orderNumber'] as String,
-            customerName: json['customerName'] as String,
-            deadline: DateTime.parse(json['deadline'] as String),
-            currentStage: json['currentStage'] as String,
-            status: OrderStatus.values.firstWhere(
-                (status) => status.name == json['status'],
-                orElse: () => OrderStatus.pending,
-            ),
-        );*/
-
         return Order(
-            id: json['id'] as int,
+            id: json['id'] as String,
             orderNumber: json['orderNumber'] as String,
             readyDate: DateTime.parse(json['deadline'] as String),
             winCount: json['winAmount'] as int,
@@ -52,10 +40,6 @@ class Order
             econom: json['econom'] as bool,
             claim: json['claim'] as bool,
             onlyPayed: json['onlyPayed'] as bool,
-            status: OrderStatus.values.firstWhere(
-                (status) => status.name == json['status'],
-                orElse: () => OrderStatus.pending,
-            ),
         );
     }
     
@@ -73,19 +57,34 @@ class Order
             'econom': econom,
             'claim': claim,
             'onlyPayed': onlyPayed,
-            'status': status,
         };
     }
-}
 
-// Перечисление статусов заказа
-enum OrderStatus
-{
-    pending('Ожидает'),
-    inProgress('В работе'),
-    completed('Завершен');
-    
-    final String displayName;
-    
-    const OrderStatus(this.displayName);
+    // Упрощенный конструктор для mock-данных
+    factory Order.simple({
+        required String orderNumber,
+        required DateTime readyDate,
+        int winCount = 0,
+        double winArea = 0,
+        int plateCount = 0,
+        double plateArea = 0,
+        bool econom = false,
+        bool claim = false,
+        bool onlyPayed = false
+    })
+    {
+        return Order(
+            id: Uuid().v4(),
+            orderNumber: orderNumber,
+            readyDate: DateTime.now().add(const Duration(days: 7)),
+            winCount: winCount,
+            winArea: winArea,
+            plateCount: plateCount,
+            plateArea: plateArea,
+            econom: econom,
+            claim: claim,
+            onlyPayed: onlyPayed,
+        );
+    }
+
 }
