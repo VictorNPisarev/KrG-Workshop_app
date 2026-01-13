@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 OrderCard(
                     order: testOrder,
                     showCompleteButton: title == 'Заказы на участке',
-                    showStartButton: title == '№№Заказы в работу',
+                    showStartButton: title == 'Заказы в работу',
                     onCompletePressed: ()
                     {
                         print('Завершить заказ ${testOrder.orderNumber}');
