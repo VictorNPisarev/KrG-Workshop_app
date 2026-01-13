@@ -1,4 +1,6 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
+import 'screens/home_screen.dart'; // Добавляем импорт
 
 void main()
 {
@@ -8,7 +10,7 @@ void main()
 class WorkshopApp extends StatelessWidget
 {
     const WorkshopApp({super.key});
-
+    
     @override
     Widget build(BuildContext context)
     {
@@ -18,25 +20,7 @@ class WorkshopApp extends StatelessWidget
                 primarySwatch: Colors.blue,
                 useMaterial3: true,
             ),
-            home: const PlaceholderScreen(),
-        );
-    }
-}
-
-class PlaceholderScreen extends StatelessWidget
-{
-    const PlaceholderScreen({super.key});
-
-    @override
-    Widget build(BuildContext context)
-    {
-        return Scaffold(
-            appBar: AppBar(
-                title: const Text('Workshop App'),
-            ),
-            body: const Center(
-                child: Text('Приложение для производственных участков'),
-            ),
+            home: const HomeScreen(), // Меняем на HomeScreen
         );
     }
 }

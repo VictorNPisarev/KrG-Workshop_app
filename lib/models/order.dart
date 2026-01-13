@@ -10,6 +10,7 @@ class Order
     final bool econom;
     final bool claim;
     final bool onlyPayed;
+    final OrderStatus status;
     
     Order({
         required this.id,
@@ -22,6 +23,7 @@ class Order
         required this.econom,
         required this.claim,
         required this.onlyPayed,
+        required this.status,
     });
     
     // Метод для создания объекта из JSON (будет полезен позже)
@@ -50,6 +52,10 @@ class Order
             econom: json['econom'] as bool,
             claim: json['claim'] as bool,
             onlyPayed: json['onlyPayed'] as bool,
+            status: OrderStatus.values.firstWhere(
+                (status) => status.name == json['status'],
+                orElse: () => OrderStatus.pending,
+            ),
         );
     }
     
@@ -67,6 +73,7 @@ class Order
             'econom': econom,
             'claim': claim,
             'onlyPayed': onlyPayed,
+            'status': status,
         };
     }
 }
