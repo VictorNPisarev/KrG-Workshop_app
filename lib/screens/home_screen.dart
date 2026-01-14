@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:workshop_app/models/orderInProduct.dart';
-import 'package:workshop_app/models/workplace.dart';
-import '../services/data_service.dart';
+import 'package:provider/provider.dart';
+import '../models/orderInProduct.dart';
+import '../providers/orders_provider.dart';
 import '../widgets/order_table_widget.dart';
 import 'order_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget
 {
-    final String currentWorkplaceId;
-    
-    const HomeScreen({
-        super.key,
-        required this.currentWorkplaceId,
-    });
+    const HomeScreen({super.key});
     
     @override
     State<HomeScreen> createState() => _HomeScreenState();
@@ -21,43 +16,45 @@ class HomeScreen extends StatefulWidget
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin
 {
     late TabController _tabController;
-    late List<OrderInProduct> _currentOrders;
-    late List<OrderInProduct> _pendingOrders;
-    late Workplace _currentWorkplace;
     
     @override
     void initState()
     {
         super.initState();
         _tabController = TabController(length: 2, vsync: this);
-        _loadData();
+        
+        // Инициализируем данные после первой отрисовки
+        WidgetsBinding.instance.addPostFrameCallback((_)
+        {
+            _initializeData();
+        });
     }
     
-    void _loadData()
+    void _initializeData()
     {
-        // Получаем данные текущего участка
-        final workplace = DataService.getWorkplaceById(widget.currentWorkplaceId);
-        if (workplace == null)
-        {
-            throw Exception('Участок с ID ${widget.currentWorkplaceId} не найден');
-        }
+        final provider = Provider.of<OrdersProvider>(context, listen: false);
         
-        _currentWorkplace = workplace;
-        
-        // Загружаем заказы
-        setState(()
-        {
-            _currentOrders = DataService.getCurrentOrders(widget.currentWorkplaceId);
-            _pendingOrders = DataService.getPendingOrders(widget.currentWorkplaceId);
-        });
+        // TODO: В будущем здесь будет ID из авторизации
+        // Сейчас используем участок "Шлифовка" (ID=3) для теста
+        provider.initialize('3');
     }
     
     @override
     Widget build(BuildContext context)
     {
+        final provider = Provider.of<OrdersProvider>(context);
+        final workplace = provider.currentWorkplace;
+        
+        if (workplace == null)
+        {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+            );
+        }
+        
         return Scaffold(
             appBar: AppBar(
-                title: Text('Участок: ${_currentWorkplace.name}'),
+                title: Text('Участок: ${workplace.name}'),
                 bottom: TabBar(
                     controller: _tabController,
                     tabs: const [
@@ -71,56 +68,46 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                     ],
                 ),
+                actions: [
+                    IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () => provider.refreshOrders(),
+                        tooltip: 'Обновить',
+                    ),
+                ],
             ),
             body: TabBarView(
                 controller: _tabController,
                 children: [
                     // Вкладка текущих заказов
-                    _buildCurrentOrdersTab(),
-                    
-                    // Вкладка ожидающих заказов
-                    _buildPendingOrdersTab(),
-                ],
-            ),
-        );
-    }
-    
-    Widget _buildCurrentOrdersTab()
-    {
-        return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-                children: [
-                    _buildSummaryInfo(
-                        'Заказов в работе: ${_currentOrders.length}',
+                    _buildOrdersTab(
+                        provider.currentOrders,
+                        'Заказов в работе: ${provider.currentOrders.length}',
                         Colors.blue,
                     ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                        child: OrderTableWidget(
-                            orders: _currentOrders,
-                            onOrderSelected: _showOrderDetails,
-                        ),
+                    
+                    // Вкладка ожидающих заказов
+                    _buildOrdersTab(
+                        provider.pendingOrders,
+                        'Заказов ожидает: ${provider.pendingOrders.length}',
+                        Colors.orange,
                     ),
                 ],
             ),
         );
     }
     
-    Widget _buildPendingOrdersTab()
+    Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color)
     {
         return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
                 children: [
-                    _buildSummaryInfo(
-                        'Заказов ожидает: ${_pendingOrders.length}',
-                        Colors.orange,
-                    ),
+                    _buildSummaryInfo(summary, color),
                     const SizedBox(height: 16),
                     Expanded(
                         child: OrderTableWidget(
-                            orders: _pendingOrders,
+                            orders: orders,
                             onOrderSelected: _showOrderDetails,
                         ),
                     ),
@@ -160,19 +147,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         );
     }
     
-    void _showOrderDetails(OrderInProduct order)
-    {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => OrderDetailScreen(
-                    orderInProduct: order,
-                    currentWorkplace: _currentWorkplace,
-                ),
-            ),
-        );
-    }
+void _showOrderDetails(OrderInProduct order)
+{
+    final provider = Provider.of<OrdersProvider>(context, listen: false);
+    final workplace = provider.currentWorkplace;
     
+    if (workplace == null) return;
+    
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => OrderDetailScreen(
+                orderId: order.id, // Передаем только ID
+                currentWorkplace: workplace,
+            ),
+        ),
+    );
+}    
     @override
     void dispose()
     {

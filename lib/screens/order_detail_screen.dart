@@ -1,17 +1,17 @@
-// lib/screens/order_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/orderInProduct.dart';
-import '../models/order.dart';
 import '../models/workplace.dart';
+import '../providers/orders_provider.dart';
 
 class OrderDetailScreen extends StatefulWidget
 {
-    final OrderInProduct orderInProduct;
+    final String orderId; // Принимаем только ID вместо всего объекта
     final Workplace currentWorkplace;
     
     const OrderDetailScreen({
         super.key,
-        required this.orderInProduct,
+        required this.orderId,
         required this.currentWorkplace,
     });
     
@@ -21,25 +21,49 @@ class OrderDetailScreen extends StatefulWidget
 
 class _OrderDetailScreenState extends State<OrderDetailScreen>
 {
-    late OrderInProduct _orderInProduct;
+    OrderInProduct? _currentOrder;
     
     @override
-    void initState()
+    void didChangeDependencies()
     {
-        super.initState();
-        _orderInProduct = widget.orderInProduct;
+        super.didChangeDependencies();
+        _loadCurrentOrder();
+    }
+    
+    void _loadCurrentOrder()
+    {
+        final provider = Provider.of<OrdersProvider>(context, listen: false);
+        final order = provider.getOrderById(widget.orderId);
+        
+        if (order != null && ( _currentOrder == null || _currentOrder!.id != order.id))
+        {
+            setState(()
+            {
+                _currentOrder = order;
+            });
+        }
     }
     
     @override
     Widget build(BuildContext context)
     {
-        final Order? order = _orderInProduct.order;
-        final isCurrentOrder = _orderInProduct.status == OrderStatus.inProgress;
-        final isPendingOrder = _orderInProduct.status == OrderStatus.pending;
+        // Получаем актуальную версию заказа при каждом build
+        final provider = context.watch<OrdersProvider>();
+        final currentOrder = provider.getOrderById(widget.orderId) ?? _currentOrder;
+        
+        if (currentOrder == null)
+        {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+            );
+        }
+        
+        final isCurrentOrder = currentOrder.status == OrderStatus.inProgress;
+        final isPendingOrder = currentOrder.status == OrderStatus.pending;
         
         return Scaffold(
             appBar: AppBar(
-                title: Text('Заказ #${order?.orderNumber ?? ''}'),
+                title: Text('Заказ #${currentOrder.order?.orderNumber ?? ''}'),
             ),
             body: Column(
                 children: [
@@ -49,11 +73,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                    _buildInfoCard(),
+                                    _buildInfoCard(currentOrder),
                                     const SizedBox(height: 16),
-                                    _buildStatusCard(),
+                                    _buildStatusCard(currentOrder),
                                     const SizedBox(height: 16),
-                                    _buildProductDetailsCard(),
+                                    _buildProductDetailsCard(currentOrder),
                                 ],
                             ),
                         ),
@@ -73,7 +97,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green,
                                             ),
-                                            onPressed: _takeToWork,
+                                            onPressed: () => _takeToWork(context, currentOrder),
                                         ),
                                     if (isPendingOrder && isCurrentOrder)
                                         const SizedBox(width: 16),
@@ -84,7 +108,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.blue,
                                             ),
-                                            onPressed: _completeOrder,
+                                            onPressed: () => _completeOrder(context, currentOrder),
                                         ),
                                 ],
                             ),
@@ -94,39 +118,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    void _takeToWork()
+    void _takeToWork(BuildContext context, OrderInProduct order)
     {
-        // TODO: Реализовать взятие в работу
-        print('Взять в работу заказ ${_orderInProduct.order?.orderNumber}');
-        
-        // Обновляем статус локально
-        setState(()
-        {
-            _orderInProduct = _orderInProduct.copyWith(
-                status: OrderStatus.inProgress,
-                changeDate: DateTime.now(),
-            );
-        });
+        final provider = context.read<OrdersProvider>();
+        provider.takeOrderToWork(order);
     }
     
-    void _completeOrder()
+    void _completeOrder(BuildContext context, OrderInProduct order)
     {
-        // TODO: Реализовать завершение заказа
-        print('Завершить заказ ${_orderInProduct.order?.orderNumber}');
-        
-        // Обновляем статус локально
-        setState(()
-        {
-            _orderInProduct = _orderInProduct.copyWith(
-                status: OrderStatus.completed,
-                changeDate: DateTime.now(),
-            );
-        });
+        final provider = context.read<OrdersProvider>();
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                title: const Text('Завершить заказ?'),
+                content: Text(
+                    'Вы уверены, что хотите завершить заказ ${order.order?.orderNumber}?',
+                ),
+                actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Отмена'),
+                    ),
+                    ElevatedButton(
+                        onPressed: ()
+                        {
+                            provider.completeOrder(order);
+                            Navigator.pop(context); // Закрыть диалог
+                            Navigator.pop(context); // Закрыть экран деталей
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                        ),
+                        child: const Text('Завершить'),
+                    ),
+                ],
+            ),
+        );
     }
     
-    Widget _buildInfoCard()
+    Widget _buildInfoCard(OrderInProduct orderInProduct)
     {
-        final order = _orderInProduct.order;
+        final order = orderInProduct.order;
         return Card(
             child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -143,13 +175,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         const Divider(),
                         _buildInfoRow('Номер заказа:', order?.orderNumber ?? ''),
                         _buildInfoRow('Срок исполнения:', 
-                            order != null ? _formatDate(order!.readyDate) : ''),
+                            order != null ? _formatDate(order.readyDate) : ''),
                         _buildInfoRow('Количество окон:', 
-                            order != null ? '${order?.winCount} шт' : ''),
+                            order != null ? '${order.winCount} шт' : ''),
                         _buildInfoRow('Площадь окон:', 
-                            order != null ? '${order?.winArea} м²' : ''),
+                            order != null ? '${order.winArea} м²' : ''),
                         _buildInfoRow('Количество плит:', 
-                            order != null ? '${order?.plateCount} шт' : ''),
+                            order != null ? '${order.plateCount} шт' : ''),
                         _buildInfoRow('Площадь плит:', 
                             order != null ? '${order.plateArea} м²' : ''),
                         _buildInfoRow('Эконом:', order?.econom == true ? 'Да' : 'Нет'),
@@ -161,10 +193,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    Widget _buildStatusCard()
+    Widget _buildStatusCard(OrderInProduct orderInProduct)
     {
         return Card(
-            color: _getStatusColor(_orderInProduct.status).withOpacity(0.1),
+            color: _getStatusColor(orderInProduct.status).withOpacity(0.1),
             child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -182,14 +214,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             children: [
                                 Chip(
                                     label: Text(
-                                        _orderInProduct.status.displayName,
+                                        orderInProduct.status.displayName,
                                         style: const TextStyle(color: Colors.white),
                                     ),
-                                    backgroundColor: _getStatusColor(_orderInProduct.status),
+                                    backgroundColor: _getStatusColor(orderInProduct.status),
                                 ),
                                 const Spacer(),
                                 Text(
-                                    'Участок: ${_orderInProduct.workplaceId}',
+                                    'Участок: ${orderInProduct.workplaceId}',
                                     style: const TextStyle(color: Colors.grey),
                                 ),
                             ],
@@ -197,7 +229,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                                'Изменен: ${_formatDate(_orderInProduct.changeDate)}',
+                                'Изменен: ${_formatDate(orderInProduct.changeDate)}',
                                 style: const TextStyle(color: Colors.grey),
                             ),
                         ),
@@ -207,7 +239,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    Widget _buildProductDetailsCard()
+    Widget _buildProductDetailsCard(OrderInProduct orderInProduct)
     {
         return Card(
             child: Padding(
@@ -223,11 +255,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             ),
                         ),
                         const Divider(),
-                        _buildInfoRow('Древесина:', _orderInProduct.lumber),
-                        _buildInfoRow('Штапик:', _orderInProduct.glazingBead),
+                        _buildInfoRow('Древесина:', orderInProduct.lumber),
+                        _buildInfoRow('Штапик:', orderInProduct.glazingBead),
                         _buildInfoRow('Двусторонняя покраска:', 
-                            _orderInProduct.twoSidePaint ? 'Да' : 'Нет'),
-                        _buildInfoRow('Комментарий:', _orderInProduct.comment),
+                            orderInProduct.twoSidePaint ? 'Да' : 'Нет'),
+                        _buildInfoRow('Комментарий:', orderInProduct.comment),
                     ],
                 ),
             ),

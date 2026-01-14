@@ -48,13 +48,13 @@ class OrderTableWidget extends StatelessWidget
             ),
             const DataColumn(
                 label: Text(
-                    'Срок',
+                    'Дата готовности',
                     style: TextStyle(fontWeight: FontWeight.bold),
                 ),
             ),
             const DataColumn(
                 label: Text(
-                    'Древесина',
+                    'Кол-во окон',
                     style: TextStyle(fontWeight: FontWeight.bold),
                 ),
             ),
@@ -78,29 +78,31 @@ class OrderTableWidget extends StatelessWidget
         }).toList();
     }
     
-    List<DataCell> _buildRowCells(OrderInProduct order, BuildContext context)
+    List<DataCell> _buildRowCells(OrderInProduct orderInProduct, BuildContext context)
     {
-        final orderData = order.order;
+        final orderData = orderInProduct.order;
         
         return [
             DataCell(
-                Text(
-                    orderData?.orderNumber ?? 'Нет номера',
+                Text((orderData != null ? orderData.winCount == 0 && orderData.plateCount > 0 ? '≡' : 
+                                          orderData.claim ? '' : ''
+                                        : '') + 
+                    (orderData?.orderNumber ?? 'Нет номера'),
                     style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
             ),
             DataCell(Text(_formatDate(orderData?.readyDate ?? DateTime.now()))),
-            DataCell(Text(order.lumber)),
+            DataCell(Text('${orderData?.winCount} шт')),
             DataCell(
                 Chip(
                     label: Text(
-                        order.status.displayName,
+                        orderInProduct.status.displayName,
                         style: const TextStyle(
                             fontSize: 12,
                             color: Colors.white,
                         ),
                     ),
-                    backgroundColor: _getStatusColor(order.status),
+                    backgroundColor: _getStatusColor(orderInProduct.status),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 2,

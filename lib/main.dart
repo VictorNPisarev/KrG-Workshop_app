@@ -1,5 +1,6 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/orders_provider.dart';
 import 'screens/home_screen.dart';
 
 void main()
@@ -14,14 +15,20 @@ class WorkshopApp extends StatelessWidget
     @override
     Widget build(BuildContext context)
     {
-        return MaterialApp(
-            title: 'Workshop App',
-            theme: ThemeData(
-                primarySwatch: Colors.blue,
-                useMaterial3: true,
+        return MultiProvider(
+            providers: [
+                ChangeNotifierProvider(
+                    create: (_) => OrdersProvider(),
+                ),
+            ],
+            child: MaterialApp(
+                title: 'Workshop App',
+                theme: ThemeData(
+                    primarySwatch: Colors.blue,
+                    useMaterial3: true,
+                ),
+                home: const HomeScreen(),
             ),
-            // Тестируем на участке №2 (Сварка)
-            home: const HomeScreen(currentWorkplaceId: '3'),
         );
     }
 }
