@@ -1,3 +1,5 @@
+import 'package:workshop_app/models/workplace.dart';
+
 import 'order.dart';
 import 'package:uuid/uuid.dart';
 
@@ -19,6 +21,7 @@ class OrderInProduct
     String comment; //TODO отдельная таблица примечаний к заказу с привязками времени, сотрудника и участка (если необходимо)
 
     Order? order;
+    Workplace? workplace;
     
     OrderInProduct({
         required this.id,
@@ -30,7 +33,8 @@ class OrderInProduct
         required this.glazingBead,
         required this.twoSidePaint,
         required this.status,
-        this.order
+        this.order,
+        this.workplace
     });
     
     // Метод для создания объекта из JSON (будет полезен позже)
@@ -49,7 +53,8 @@ class OrderInProduct
                 (status) => status.name == json['status'],
                 orElse: () => OrderStatus.pending,
             ),
-            order: null
+            order: null,
+            workplace: null
         );
     }
     
@@ -80,7 +85,8 @@ class OrderInProduct
         String? glazingBead,
         bool? twoSidePaint,
         OrderStatus? status,
-        Order? order, // ✅ Новое поле
+        Order? order,
+        Workplace? workplace
     })
     {
         return OrderInProduct(
@@ -93,18 +99,19 @@ class OrderInProduct
             glazingBead: glazingBead ?? this.glazingBead,
             twoSidePaint: twoSidePaint ?? this.twoSidePaint,
             status: status ?? this.status,
-            order: order ?? this.order, // ✅ Копируем order
+            order: order ?? this.order,
+            workplace: workplace ?? this.workplace,
         );
     }
 
         // Метод для проверки, находится ли заказ на текущем участке
-    bool isInWorkshop(String workplaceId)
+    bool isInWorkplace(String workplaceId)
     {
         return this.workplaceId == workplaceId;
     }
     
     // Метод для проверки, ожидает ли заказ на предыдущем участке
-/*    bool isPendingInWorkshop(String workplaceId)
+/*    bool isPendingInWorkplace(String workplaceId)
     {
         return workplaceId?.id == workshopId && status == OrderStatus.pending;
     }
@@ -119,6 +126,7 @@ class OrderInProduct
         String lumber = '',
         String glazingBead = '',
         bool twoSidePaint = false,
+        Order? order = null
     })
     {
         return OrderInProduct(
@@ -130,7 +138,8 @@ class OrderInProduct
             lumber: lumber,
             glazingBead: glazingBead,
             twoSidePaint: twoSidePaint,
-            status: status
+            status: status,
+            order: order
         );
     }
 

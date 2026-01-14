@@ -1,13 +1,18 @@
-import 'package:workshop_app/models/workplace.dart';
-
-import '../models/order.dart';
-import '../models/orderInProduct.dart';
-import '../widgets/order_card.dart';
 import 'package:flutter/material.dart';
+import 'package:workshop_app/models/orderInProduct.dart';
+import 'package:workshop_app/models/workplace.dart';
+import '../services/data_service.dart';
+import '../widgets/order_table_widget.dart';
+import 'order_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget
 {
-    const HomeScreen({super.key});
+    final String currentWorkplaceId;
+    
+    const HomeScreen({
+        super.key,
+        required this.currentWorkplaceId,
+    });
     
     @override
     State<HomeScreen> createState() => _HomeScreenState();
@@ -16,12 +21,35 @@ class HomeScreen extends StatefulWidget
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin
 {
     late TabController _tabController;
+    late List<OrderInProduct> _currentOrders;
+    late List<OrderInProduct> _pendingOrders;
+    late Workplace _currentWorkplace;
     
     @override
     void initState()
     {
         super.initState();
         _tabController = TabController(length: 2, vsync: this);
+        _loadData();
+    }
+    
+    void _loadData()
+    {
+        // Получаем данные текущего участка
+        final workplace = DataService.getWorkplaceById(widget.currentWorkplaceId);
+        if (workplace == null)
+        {
+            throw Exception('Участок с ID ${widget.currentWorkplaceId} не найден');
+        }
+        
+        _currentWorkplace = workplace;
+        
+        // Загружаем заказы
+        setState(()
+        {
+            _currentOrders = DataService.getCurrentOrders(widget.currentWorkplaceId);
+            _pendingOrders = DataService.getPendingOrders(widget.currentWorkplaceId);
+        });
     }
     
     @override
@@ -29,17 +57,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     {
         return Scaffold(
             appBar: AppBar(
-                title: const Text('Участок производства'),
+                title: Text('Участок: ${_currentWorkplace.name}'),
                 bottom: TabBar(
                     controller: _tabController,
                     tabs: const [
                         Tab(
                             icon: Icon(Icons.build),
-                            text: 'Заказы на участке',
+                            text: 'Текущие заказы',
                         ),
                         Tab(
                             icon: Icon(Icons.queue),
-                            text: 'Заказы в работу',
+                            text: 'Ожидают обработки',
                         ),
                     ],
                 ),
@@ -47,71 +75,104 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             body: TabBarView(
                 controller: _tabController,
                 children: [
-                    // TODO: Заменим на реальные виджеты
-                    _buildPlaceholderContent('Заказы на участке'),
-                    _buildPlaceholderContent('Заказы в работу'),
+                    // Вкладка текущих заказов
+                    _buildCurrentOrdersTab(),
+                    
+                    // Вкладка ожидающих заказов
+                    _buildPendingOrdersTab(),
                 ],
             ),
         );
     }
     
-    Widget _buildPlaceholderContent(String title)
+    Widget _buildCurrentOrdersTab()
     {
-        // Создаем тестовый заказ
-        final testOrder = Order(
-            id: '1',
-            orderNumber: '2024-001',
-            readyDate: DateTime.now().add(const Duration(days: 3)),
-            winCount: 5,
-            winArea: 10,
-            plateCount: 15,
-            plateArea: 5,
-            claim: false,
-            econom: false,
-            onlyPayed: false,
-        );
-
-        final testWorkplace = Workplace(
-            id: '1',
-            name: 'Шлифовка',
-            isWorkPlace: true,
-            nextWorkPlace: null,
-            previousWorkPlace: null
-        );
-
-        final testOrderInProduct = OrderInProduct(
-            id: '1',
-            orderId: testOrder.id,
-            comment: '',
-            glazingBead: '',
-            lumber: '',
-            twoSidePaint: true,
-            workplaceId: testWorkplace.id,
-            changeDate: DateTime.now(),
-            order: testOrder,
-            status: OrderStatus.inProgress,
-        );
-        
-        return ListView(
-            padding: const EdgeInsets.all(8),
-            children: [
-                OrderCard(
-                    orderInProduct: testOrderInProduct,
-                    showCompleteButton: title == 'Заказы на участке',
-                    showStartButton: title == 'Заказы в работу',
-                    onCompletePressed: ()
-                    {
-                        print('Завершить заказ ${testOrder.orderNumber}');
-                    },
-                    onStartPressed: ()
-                    {
-                        print('Взять в работу заказ ${testOrder.orderNumber}');
-                    },
-                ),
-            ],
+        return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+                children: [
+                    _buildSummaryInfo(
+                        'Заказов в работе: ${_currentOrders.length}',
+                        Colors.blue,
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                        child: OrderTableWidget(
+                            orders: _currentOrders,
+                            onOrderSelected: _showOrderDetails,
+                        ),
+                    ),
+                ],
+            ),
         );
     }
-
+    
+    Widget _buildPendingOrdersTab()
+    {
+        return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+                children: [
+                    _buildSummaryInfo(
+                        'Заказов ожидает: ${_pendingOrders.length}',
+                        Colors.orange,
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                        child: OrderTableWidget(
+                            orders: _pendingOrders,
+                            onOrderSelected: _showOrderDetails,
+                        ),
+                    ),
+                ],
+            ),
+        );
+    }
+    
+    Widget _buildSummaryInfo(String text, Color color)
+    {
+        return Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+            ),
+            decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color.withOpacity(0.3)),
+            ),
+            child: Row(
+                children: [
+                    Icon(
+                        Icons.info_outline,
+                        color: color,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                        text,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: color,
+                        ),
+                    ),
+                ],
+            ),
+        );
+    }
+    
+    void _showOrderDetails(OrderInProduct order)
+    {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => OrderDetailScreen(
+                    orderInProduct: order,
+                    currentWorkplace: _currentWorkplace,
+                ),
+            ),
+        );
+    }
+    
     @override
     void dispose()
     {

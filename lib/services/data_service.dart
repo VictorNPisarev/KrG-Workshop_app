@@ -59,28 +59,33 @@ class DataService
         OrderInProduct.simple(
             orderId: orders[0].id,
             workplaceId: '3',
-            status: OrderStatus.pending
+            status: OrderStatus.pending,
+            order: orders[0]
         ),
         OrderInProduct.simple(
             orderId: orders[1].id,
             workplaceId: '3',
-            status: OrderStatus.inProgress
+            status: OrderStatus.inProgress,
+            order: orders[1]
         ),
         OrderInProduct.simple(
             orderId: orders[2].id,
             workplaceId: '3',
-            status: OrderStatus.pending
+            status: OrderStatus.pending,
+            order: orders[2]
         ),
         OrderInProduct.simple(
             orderId: orders[3].id,
             workplaceId: '2',
             status: OrderStatus.pending,
-            twoSidePaint: true
+            twoSidePaint: true,
+            order: orders[3]
         ),
         OrderInProduct.simple(
             orderId: orders[4].id,
-            workplaceId: '2',
-            status: OrderStatus.inProgress
+            workplaceId: '1',
+            status: OrderStatus.inProgress,
+            order: orders[4]
         ),
     ];
 

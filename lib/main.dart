@@ -1,6 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart'; // Добавляем импорт
+import 'screens/home_screen.dart';
 
 void main()
 {
@@ -20,7 +20,8 @@ class WorkshopApp extends StatelessWidget
                 primarySwatch: Colors.blue,
                 useMaterial3: true,
             ),
-            home: const HomeScreen(), // Меняем на HomeScreen
+            // Тестируем на участке №2 (Сварка)
+            home: const HomeScreen(currentWorkplaceId: '3'),
         );
     }
 }
