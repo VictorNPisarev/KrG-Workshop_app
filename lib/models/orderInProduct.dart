@@ -1,148 +1,135 @@
-import 'package:workshop_app/models/workplace.dart';
-
-import 'order.dart';
-import 'package:uuid/uuid.dart';
-
+// lib/models/order_in_product.dart
 class OrderInProduct
 {
-    //final String id = Uuid().v4();
     final String id;
     final String orderId;
-    final String lumber; //тип и порода древесины
-    final String glazingBead; //тип штапика (стандарт / рустикальный)
-    final bool twoSidePaint; //отметка о двухсторонней покраске
+    final String lumber;
+    final String glazingBead;
+    final bool twoSidePaint;
     
-    //TODO отдельная таблица OrderWorkplace
-    String workplaceId; // TODO должна быть связь много ко многим, т.к. заказ может находиться одновременно на нескольких участках
-    DateTime changeDate; // TODO не просто дата изменения этапа, а даты, когда участок взял заказ в работу и когда закончил его
-    OrderStatus status; // TODO в ту же таблицу. А еще лучше просто динамически рассчитываемое поле исходя из предыдущих данных   
-
-
-    String comment; //TODO отдельная таблица примечаний к заказу с привязками времени, сотрудника и участка (если необходимо)
-
-    Order? order;
-    Workplace? workplace;
+    // Поля из Orders
+    final String orderNumber;
+    final String customerName;
+    final DateTime readyDate;
+    final int winCount;
+    final double winArea;
+    final int plateCount;
+    final double plateArea;
+    final bool econom;
+    final bool claim;
+    final bool onlyPayed;
+    
+    // Поля статуса
+    String workplaceId;
+    DateTime changeDate;
+    OrderStatus status;
+    String comment;
     
     OrderInProduct({
         required this.id,
         required this.orderId,
-        required this.workplaceId,
-        required this.changeDate,
-        required this.comment,
+        required this.orderNumber,
+        required this.customerName,
+        required this.readyDate,
+        required this.winCount,
+        required this.winArea,
+        required this.plateCount,
+        required this.plateArea,
+        required this.econom,
+        required this.claim,
+        required this.onlyPayed,
         required this.lumber,
         required this.glazingBead,
         required this.twoSidePaint,
+        required this.workplaceId,
+        required this.changeDate,
+        required this.comment,
         required this.status,
-        this.order,
-        this.workplace
     });
     
-    // Метод для создания объекта из JSON (будет полезен позже)
     factory OrderInProduct.fromJson(Map<String, dynamic> json)
     {
         return OrderInProduct(
-            id: json['id'] as String,
-            orderId: json['orderId'] as String,
-            workplaceId: json['workplaceId'] as String,
-            changeDate: DateTime.parse(json['changeDate'] as String),
-            comment: json['comment'] as String,
-            lumber: json['lumber'] as String,
-            glazingBead: json['glazingBead'] as String,
-            twoSidePaint: json['twoSidePaint'] as bool,
-            status: OrderStatus.values.firstWhere(
-                (status) => status.name == json['status'],
-                orElse: () => OrderStatus.pending,
-            ),
-            order: null,
-            workplace: null
+            id: json['id']?.toString() ?? '',
+            orderId: json['orderId']?.toString() ?? '',
+            orderNumber: json['orderNumber']?.toString() ?? '',
+            customerName: json['customerName']?.toString() ?? '',
+            readyDate: DateTime.parse(json['readyDate']?.toString() ?? DateTime.now().toString()),
+            winCount: (json['winCount'] ?? 0) as int,
+            winArea: (json['winArea'] ?? 0.0).toDouble(),
+            plateCount: (json['plateCount'] ?? 0) as int,
+            plateArea: (json['plateArea'] ?? 0.0).toDouble(),
+            econom: (json['econom'] ?? false) as bool,
+            claim: (json['claim'] ?? false) as bool,
+            onlyPayed: (json['onlyPayed'] ?? false) as bool,
+            lumber: json['lumber']?.toString() ?? '',
+            glazingBead: json['glazingBead']?.toString() ?? '',
+            twoSidePaint: (json['twoSidePaint'] ?? false) as bool,
+            workplaceId: json['workplaceId']?.toString() ?? '',
+            changeDate: DateTime.parse(json['changeDate']?.toString() ?? DateTime.now().toString()),
+            comment: json['comment']?.toString() ?? '',
+            status: _parseStatus(json['status']),
         );
     }
     
-    // Метод для конвертации в JSON
-    Map<String, dynamic> toJson()
+    static OrderStatus _parseStatus(dynamic status)
     {
-        return {
-            'id': id,
-            'orderId': orderId,
-            'workplaceId': workplaceId,
-            'changeDate': changeDate.toIso8601String(),
-            'comment': comment,
-            'lumber': lumber,
-            'glazingBead': glazingBead,
-            'twoSidePaint': twoSidePaint,
-            'status': status,
-        };
+        final statusStr = status?.toString().toLowerCase() ?? '';
+        if (statusStr.contains('progress')) return OrderStatus.inProgress;
+        if (statusStr.contains('complete')) return OrderStatus.completed;
+        return OrderStatus.pending;
     }
-
-        // Добавляем метод для создания копии с обновленным order
+    
     OrderInProduct copyWith({
         String? id,
         String? orderId,
-        String? workplaceId,
-        DateTime? changeDate,
-        String? comment,
+        String? orderNumber,
+        String? customerName,
+        DateTime? readyDate,
+        int? winCount,
+        double? winArea,
+        int? plateCount,
+        double? plateArea,
+        bool? econom,
+        bool? claim,
+        bool? onlyPayed,
         String? lumber,
         String? glazingBead,
         bool? twoSidePaint,
+        String? workplaceId,
+        DateTime? changeDate,
+        String? comment,
         OrderStatus? status,
-        Order? order,
-        Workplace? workplace
     })
     {
         return OrderInProduct(
             id: id ?? this.id,
             orderId: orderId ?? this.orderId,
-            workplaceId: workplaceId ?? this.workplaceId,
-            changeDate: changeDate ?? this.changeDate,
-            comment: comment ?? this.comment,
+            orderNumber: orderNumber ?? this.orderNumber,
+            customerName: customerName ?? this.customerName,
+            readyDate: readyDate ?? this.readyDate,
+            winCount: winCount ?? this.winCount,
+            winArea: winArea ?? this.winArea,
+            plateCount: plateCount ?? this.plateCount,
+            plateArea: plateArea ?? this.plateArea,
+            econom: econom ?? this.econom,
+            claim: claim ?? this.claim,
+            onlyPayed: onlyPayed ?? this.onlyPayed,
             lumber: lumber ?? this.lumber,
             glazingBead: glazingBead ?? this.glazingBead,
             twoSidePaint: twoSidePaint ?? this.twoSidePaint,
+            workplaceId: workplaceId ?? this.workplaceId,
+            changeDate: changeDate ?? this.changeDate,
+            comment: comment ?? this.comment,
             status: status ?? this.status,
-            order: order ?? this.order,
-            workplace: workplace ?? this.workplace,
         );
     }
 
-        // Метод для проверки, находится ли заказ на текущем участке
+    // Метод для проверки, находится ли заказ на текущем участке
     bool isInWorkplace(String workplaceId)
     {
         return this.workplaceId == workplaceId;
     }
-    
-    // Метод для проверки, ожидает ли заказ на предыдущем участке
-/*    bool isPendingInWorkplace(String workplaceId)
-    {
-        return workplaceId?.id == workshopId && status == OrderStatus.pending;
-    }
-*/
-
-        // Упрощенный конструктор для mock-данных
-    factory OrderInProduct.simple({
-        required String orderId,
-        required String workplaceId,
-        required OrderStatus status,
-        String comment = '',
-        String lumber = '',
-        String glazingBead = '',
-        bool twoSidePaint = false,
-        Order? order = null
-    })
-    {
-        return OrderInProduct(
-            id: Uuid().v4(),
-            orderId: orderId,
-            workplaceId: workplaceId,
-            changeDate: DateTime.now(),
-            comment: comment,
-            lumber: lumber,
-            glazingBead: glazingBead,
-            twoSidePaint: twoSidePaint,
-            status: status,
-            order: order
-        );
-    }
-
 }
 
 // Перечисление статусов заказа

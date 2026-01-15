@@ -37,7 +37,7 @@ class OrderCard extends StatelessWidget
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                                 Text(
-                                    'Заказ #${orderInProduct.order!.orderNumber}',
+                                    'Заказ #${orderInProduct.orderNumber}',
                                     style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -50,9 +50,9 @@ class OrderCard extends StatelessWidget
                         const SizedBox(height: 8),
                         
                         // Информация о заказе
-                        Text('Срок: ${_formatDate(orderInProduct.order!.readyDate)}'),
-                        Text('Окна: ${orderInProduct.order!.winCount}'),
-                        Text('Щитовые: ${orderInProduct.order!.plateCount}'),
+                        Text('Срок: ${_formatDate(orderInProduct.readyDate)}'),
+                        Text('Окна: ${orderInProduct.winCount}'),
+                        Text('Щитовые: ${orderInProduct.plateCount}'),
                         
                         // Кнопки действий (если нужны)
                         if (showCompleteButton || showStartButton)

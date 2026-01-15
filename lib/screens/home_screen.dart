@@ -35,16 +35,53 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final provider = Provider.of<OrdersProvider>(context, listen: false);
         
         // TODO: В будущем здесь будет ID из авторизации
-        // Сейчас используем участок "Шлифовка" (ID=3) для теста
-        provider.initialize('3');
+
+        provider.initialize('vJ8sXoQ40F4SIhEqcMha7c');
     }
     
     @override
     Widget build(BuildContext context)
     {
         final provider = Provider.of<OrdersProvider>(context);
+        
         final workplace = provider.currentWorkplace;
         
+        if (provider.isLoading && provider.currentWorkplace == null)
+        {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+            );
+        }
+
+        if (provider.error != null && provider.currentOrders.isEmpty && provider.pendingOrders.isEmpty)
+        {
+            return Scaffold(
+                appBar: AppBar(title: const Text('Ошибка')),
+                body: Center(
+                    child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Text(
+                                    provider.error!,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.grey),
+                                ),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                                onPressed: () => provider.refreshOrders(),
+                                child: const Text('Повторить'),
+                            ),
+                        ],
+                    ),
+                ),
+            );
+        }
+
         if (workplace == null)
         {
             return const Scaffold(

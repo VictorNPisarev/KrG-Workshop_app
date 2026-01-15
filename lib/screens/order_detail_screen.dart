@@ -63,7 +63,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         
         return Scaffold(
             appBar: AppBar(
-                title: Text('Заказ #${currentOrder.order?.orderNumber ?? ''}'),
+                title: Text('Заказ #${currentOrder.orderNumber}'),
             ),
             body: Column(
                 children: [
@@ -132,7 +132,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             builder: (context) => AlertDialog(
                 title: const Text('Завершить заказ?'),
                 content: Text(
-                    'Вы уверены, что хотите завершить заказ ${order.order?.orderNumber}?',
+                    'Вы уверены, что хотите завершить заказ ${order.orderNumber}?',
                 ),
                 actions: [
                     TextButton(
@@ -156,9 +156,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    Widget _buildInfoCard(OrderInProduct orderInProduct)
+    Widget _buildInfoCard(OrderInProduct order)
     {
-        final order = orderInProduct.order;
         return Card(
             child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -173,20 +172,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             ),
                         ),
                         const Divider(),
-                        _buildInfoRow('Номер заказа:', order?.orderNumber ?? ''),
-                        _buildInfoRow('Срок исполнения:', 
-                            order != null ? _formatDate(order.readyDate) : ''),
-                        _buildInfoRow('Количество окон:', 
-                            order != null ? '${order.winCount} шт' : ''),
-                        _buildInfoRow('Площадь окон:', 
-                            order != null ? '${order.winArea} м²' : ''),
-                        _buildInfoRow('Количество плит:', 
-                            order != null ? '${order.plateCount} шт' : ''),
-                        _buildInfoRow('Площадь плит:', 
-                            order != null ? '${order.plateArea} м²' : ''),
-                        _buildInfoRow('Эконом:', order?.econom == true ? 'Да' : 'Нет'),
-                        _buildInfoRow('Претензия:', order?.claim == true ? 'Да' : 'Нет'),
-                        _buildInfoRow('Только оплаченные:', order?.onlyPayed == true ? 'Да' : 'Нет'),
+                        _buildInfoRow('Номер заказа:', order.orderNumber),
+                        _buildInfoRow('Срок исполнения:', _formatDate(order.readyDate)),
+                        _buildInfoRow('Количество окон:', '${order.winCount} шт'),
+                        _buildInfoRow('Площадь окон:', '${order.winArea} м²'),
+                        _buildInfoRow('Количество плит:', '${order.plateCount} шт'),
+                        _buildInfoRow('Площадь плит:', '${order.plateArea} м²'),
+                        _buildInfoRow('Эконом:', order.econom == true ? 'Да' : 'Нет'),
+                        _buildInfoRow('Претензия:', order.claim == true ? 'Да' : 'Нет'),
+                        _buildInfoRow('Только оплаченные:', order.onlyPayed == true ? 'Да' : 'Нет'),
                     ],
                 ),
             ),

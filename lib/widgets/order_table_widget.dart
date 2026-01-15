@@ -80,19 +80,18 @@ class OrderTableWidget extends StatelessWidget
     
     List<DataCell> _buildRowCells(OrderInProduct orderInProduct, BuildContext context)
     {
-        final orderData = orderInProduct.order;
+        //final orderData = orderInProduct.order;
         
         return [
             DataCell(
-                Text((orderData != null ? orderData.winCount == 0 && orderData.plateCount > 0 ? '≡' : 
-                                          orderData.claim ? '' : ''
-                                        : '') + 
-                    (orderData?.orderNumber ?? 'Нет номера'),
+                Text((orderInProduct.winCount == 0 && orderInProduct.plateCount > 0 ? '≡' : 
+                                          orderInProduct.claim ? '' : '') 
+                      + (orderInProduct.orderNumber),
                     style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
             ),
-            DataCell(Text(_formatDate(orderData?.readyDate ?? DateTime.now()))),
-            DataCell(Text('${orderData?.winCount} шт')),
+            DataCell(Text(_formatDate(orderInProduct.readyDate))),
+            DataCell(Text('${orderInProduct.winCount} шт')),
             DataCell(
                 Chip(
                     label: Text(
