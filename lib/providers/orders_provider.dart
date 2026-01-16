@@ -1,6 +1,7 @@
 // lib/providers/orders_provider.dart
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/orderInProduct.dart';
 import '../models/workplace.dart';
@@ -18,7 +19,8 @@ class OrdersProvider extends ChangeNotifier
     // Состояния загрузки и ошибок
     bool _isLoading = false;
     String? _error;
-    
+    bool _isInitialized = false;
+        
     // Таймер для периодического обновления (опционально)
     Timer? _refreshTimer;
     
@@ -28,37 +30,57 @@ class OrdersProvider extends ChangeNotifier
     Workplace? get currentWorkplace => _currentWorkplace;
     bool get isLoading => _isLoading;
     String? get error => _error;
+    bool get isInitialized => _isInitialized;
     
     // Инициализация провайдера
     Future<void> initialize(String workplaceId) async
     {
+        if (_isLoading) return;
+
         _isLoading = true;
         _error = null;
         notifyListeners();
         
         try
         {
+            print('🔄 OrdersProvider.initialize: начало, workplaceId=$workplaceId');
+            
             // Загружаем рабочие места
             final workplaces = await DataService.getWorkplaces();
+            print('✅ Загружено рабочих мест: ${workplaces.length}');
             
             // Находим нужное рабочее место
             final workplace = workplaces.firstWhere(
                 (wp) => wp.id == workplaceId,
-                orElse: () => throw Exception('Участок с ID $workplaceId не найден'),
+                orElse: () {
+                    print('⚠️ Workplace $workplaceId не найден, использую первый');
+                    return workplaces.isNotEmpty ? workplaces.first : Workplace.fallback();
+                },
             );
             
             _currentWorkplace = workplace;
+            print('✅ Текущее рабочее место: ${workplace.name}');
             
-            // Загружаем заказы для этого участка
-            await _loadOrders();
+            // Загружаем заказы (пока из локальных данных)
+            // TODO: Позже замените на вызов API
+            //await _loadOrders();
+            _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
             
+            print('✅ Загружено заказов: ${_currentOrders.length}');
+
             // Запускаем периодическое обновление (каждые 30 секунд)
             _startAutoRefresh();
+            
+            _isInitialized = true;
+            print('✅ OrdersProvider.initialize: завершено успешно');
         }
         catch (e)
         {
-            _error = 'Ошибка инициализации: ${e.toString()}';
-            rethrow;
+            _error = 'Ошибка инициализации: $e';
+            print('❌ OrdersProvider.initialize: ошибка - $e');
+            
+            // Используем fallback
+            _useFallbackData(workplaceId);
         }
         finally
         {
@@ -66,7 +88,18 @@ class OrdersProvider extends ChangeNotifier
             notifyListeners();
         }
     }
-    
+
+        void _useFallbackData(String workplaceId) async
+    {
+        print('🔄 Использую fallback данные...');
+        
+        // Используем DataService как fallback
+        //_currentWorkplace = DataService.getWorkplaceById(workplaceId);
+        _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+        //_pendingOrders = DataService.getPendingOrders(workplaceId);
+        //_isInitialized = true;
+    }
+
     // Основная загрузка заказов
     Future<void> _loadOrders() async
     {
@@ -78,9 +111,9 @@ class OrdersProvider extends ChangeNotifier
             final allOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
             
             // Фильтруем текущие заказы (статус "в работе" и workplaceId совпадает)
-            _currentOrders = allOrders.where((order) 
+            _currentOrders = allOrders;/*allOrders.where((order) 
                 => order.workplaceId == _currentWorkplace!.id 
-                && order.status == OrderStatus.inProgress).toList();
+                && order.status == OrderStatus.inProgress).toList();*/
             
             // Фильтруем ожидающие заказы (с предыдущего участка)
             if (_currentWorkplace!.previousWorkPlace != null)

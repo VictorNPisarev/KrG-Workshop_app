@@ -37,15 +37,50 @@ class Workplace
 
     factory Workplace.fromJson(Map<String, dynamic> json)
     {
-        return Workplace(
-            id: json['id'] as String,
-            name: json['name'] as String,
-            previousWorkPlace: json['previousWorkPlace'] as String,
-            nextWorkPlace: json['nextWorkPlace'] as String,
-            isWorkPlace: json['isWorkPlace'] as bool,
-        );
-    }
-    
+        try
+        {
+            print('🧩 Начало парсинга Workplace');
+            print('   Сырой JSON: $json');
+            
+            // Дебаг каждого поля
+            final rowId = json['Row ID'];
+            print('   Row ID: $rowId (тип: ${rowId.runtimeType})');
+            
+            final status = json['Статус'];
+            print('   Статус: $status (тип: ${status.runtimeType})');
+            
+            final previous = json['Предыдущий участок'];
+            print('   Предыдущий участок: $previous (тип: ${previous.runtimeType})');
+            
+            final isWorkplaceStr = json['Участок производства'];
+            print('   Участок производства: $isWorkplaceStr (тип: ${isWorkplaceStr.runtimeType})');
+            
+            // Валидация
+            if (rowId == null)
+            {
+                throw Exception('❌ Row ID не может быть null');
+            }
+            
+            if (status == null)
+            {
+                throw Exception('❌ Статус не может быть null');
+            }
+            
+            return Workplace(
+                id: rowId.toString(),
+                name: status.toString(),
+                previousWorkPlace: previous?.toString(),
+                nextWorkPlace: null, // Пока нет в данных
+                isWorkPlace: (isWorkplaceStr?.toString() ?? 'Нет').toLowerCase() == 'да',
+            );
+        }
+        catch (e)
+        {
+            print('❌ Ошибка при парсинге Workplace: $e');
+            print('   Проблемный JSON: $json');
+            rethrow;
+        }
+    }    
     Map<String, dynamic> toJson()
     {
         return {
@@ -56,4 +91,17 @@ class Workplace
             'isWorkPlace': isWorkPlace,
         };
     }
+
+    // Fallback конструктор на случай ошибок
+    factory Workplace.fallback({int index = 0})
+    {
+        return Workplace(
+            id: 'fallback_$index',
+            name: 'Участок $index (ошибка загрузки)',
+            previousWorkPlace: null,
+            nextWorkPlace: null,
+            isWorkPlace: true,
+        );
+    }
+
 }

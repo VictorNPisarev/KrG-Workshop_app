@@ -1,4 +1,4 @@
-// lib/models/order_in_product.dart
+import 'package:intl/intl.dart';
 class OrderInProduct
 {
     final String id;
@@ -9,7 +9,6 @@ class OrderInProduct
     
     // Поля из Orders
     final String orderNumber;
-    final String customerName;
     final DateTime readyDate;
     final int winCount;
     final double winArea;
@@ -29,7 +28,6 @@ class OrderInProduct
         required this.id,
         required this.orderId,
         required this.orderNumber,
-        required this.customerName,
         required this.readyDate,
         required this.winCount,
         required this.winArea,
@@ -44,31 +42,29 @@ class OrderInProduct
         required this.workplaceId,
         required this.changeDate,
         required this.comment,
-        required this.status,
+        this.status = OrderStatus.pending,
     });
     
     factory OrderInProduct.fromJson(Map<String, dynamic> json)
     {
         return OrderInProduct(
-            id: json['id']?.toString() ?? '',
-            orderId: json['orderId']?.toString() ?? '',
-            orderNumber: json['orderNumber']?.toString() ?? '',
-            customerName: json['customerName']?.toString() ?? '',
-            readyDate: DateTime.parse(json['readyDate']?.toString() ?? DateTime.now().toString()),
-            winCount: (json['winCount'] ?? 0) as int,
-            winArea: (json['winArea'] ?? 0.0).toDouble(),
-            plateCount: (json['plateCount'] ?? 0) as int,
-            plateArea: (json['plateArea'] ?? 0.0).toDouble(),
-            econom: (json['econom'] ?? false) as bool,
-            claim: (json['claim'] ?? false) as bool,
-            onlyPayed: (json['onlyPayed'] ?? false) as bool,
-            lumber: json['lumber']?.toString() ?? '',
-            glazingBead: json['glazingBead']?.toString() ?? '',
-            twoSidePaint: (json['twoSidePaint'] ?? false) as bool,
-            workplaceId: json['workplaceId']?.toString() ?? '',
-            changeDate: DateTime.parse(json['changeDate']?.toString() ?? DateTime.now().toString()),
-            comment: json['comment']?.toString() ?? '',
-            status: _parseStatus(json['status']),
+            id: json['Row ID']?.toString() ?? '',
+            orderId: json['ID заказа']?.toString() ?? '',
+            orderNumber: json['Name']?.toString() ?? '',
+            readyDate: DateTime.parse((json['Deadline'] as String).replaceAll('/', '.')),
+            winCount: (json['WindowCount'] ?? 0) as int,
+            winArea: (json['WindowArea'] ?? 0.0).toDouble(),
+            plateCount: (json['PlateCount'] ?? 0) as int,
+            plateArea: (json['PlateArea'] ?? 0.0).toDouble(),
+            econom: (json['Econom'] == "Да"),
+            claim: (json['Claim'] == "Да"),
+            onlyPayed: (json['onlyPayed'] == "Да"),
+            lumber: json['Брус']?.toString() ?? '',
+            glazingBead: json['Штапик']?.toString() ?? '',
+            twoSidePaint: (json['Двухсторонняя покраска'] == "Да"),
+            workplaceId: json['ID статуса']?.toString() ?? '',
+            changeDate: DateTime.parse((json['Дата изменения'] as String).replaceAll('/', '.')),
+            comment: json['Примечания']?.toString() ?? ''
         );
     }
     
@@ -106,7 +102,6 @@ class OrderInProduct
             id: id ?? this.id,
             orderId: orderId ?? this.orderId,
             orderNumber: orderNumber ?? this.orderNumber,
-            customerName: customerName ?? this.customerName,
             readyDate: readyDate ?? this.readyDate,
             winCount: winCount ?? this.winCount,
             winArea: winArea ?? this.winArea,
