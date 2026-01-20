@@ -298,7 +298,7 @@ class OrdersProvider extends ChangeNotifier
         _refreshTimer?.cancel();
         
         // Запускаем новый (обновляем каждые 30 секунд)
-        _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) 
+        _refreshTimer = Timer.periodic(const Duration(minutes: 30), (timer) 
         {
             _loadOrders();
             notifyListeners();

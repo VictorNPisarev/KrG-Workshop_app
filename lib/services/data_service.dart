@@ -128,6 +128,7 @@ class DataService
         try
         {
             print('🔧 Парсинг JSON ответа...');
+            print(responseBody);
             
             // Пробуем распарсить
             final List<dynamic> jsonList = jsonDecode(responseBody);
