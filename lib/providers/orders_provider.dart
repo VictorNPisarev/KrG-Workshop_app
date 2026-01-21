@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../models/orderInProduct.dart';
+import '../models/order_in_product.dart';
 import '../models/workplace.dart';
 import '../services/data_service.dart';
 
@@ -359,6 +359,19 @@ class OrdersProvider extends ChangeNotifier
     String? getPreviousWorkplaceId()
     {
         return _currentWorkplace?.previousWorkPlace;
+    }
+
+    void clearData()
+    {
+        _currentOrders.clear();
+        _pendingOrders.clear();
+        _currentWorkplace = null;
+        _isInitialized = false;
+        _isLoading = false;
+        _error = null;
+        
+        notifyListeners();
+        print('🗑️ OrdersProvider: данные очищены');
     }
     
     // Очистка ресурсов при закрытии приложения

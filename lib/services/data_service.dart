@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../models/orderInProduct.dart';
+import '../models/order_in_product.dart';
+import '../models/user.dart';
+import '../models/user_workplace.dart';
 import '../models/workplace.dart';
 
 class DataService
@@ -172,7 +174,162 @@ class DataService
         }
     }
 
+    // Получение заказов для участка
+    static Future<List<User>> getUsers() async
+    {
+        try
+        {
+            final response = await http.get(
+                Uri.parse('$_baseUrl?action=getUsers'),
+                headers: {'Content-Type': 'application/json'},
+            );
+
+            print('✅Users Ответ получен, статус: ${response.statusCode}');
+            print('📦 Длина ответа: ${response.body.length} символов');
+
+            if (response.statusCode == 200)
+            {
+                return _parseUsersResponse(response.body);
+            }
+            else
+            {
+                throw Exception('HTTP ${response.statusCode}');
+            }
+        }
+        catch (e)
+        {
+            print('❌ Ошибка в getOrdersByWorkplace: $e');
+            rethrow;
+        }
+    }
+
+    static List<User> _parseUsersResponse(String responseBody)
+    {
+        try
+        {
+            print('🔧 Парсинг JSON ответа...');
+            print(responseBody);
+            
+            // Пробуем распарсить
+            final List<dynamic> jsonList = jsonDecode(responseBody);
+            print('✅ JSON распарсен, элементов: ${jsonList.length}');
+            
+            // Парсим каждый элемент
+            final users = <User>[];
+            
+            for (int i = 0; i < jsonList.length; i++)
+            {
+                try
+                {
+                    final item = jsonList[i] as Map<String, dynamic>;
+                    print('\n   --- Элемент $i ---');
+                    
+                    final user = User.fromJson(item);
+                    users.add(user);
+                    
+                    print('   ✅ Успешно распарсено: ${user.name} (Email: ${user.email})');
+                }
+                catch (e)
+                {
+                    print('   ⚠️ Ошибка парсинга элемента $i: $e');
+                    print('   Элемент: ${jsonList[i]}');
+                    
+                    // Можно пропустить проблемный элемент или добавить дефолтный
+                    // workplaces.add(Workplace.fallback());
+                }
+            }
+            
+            print('\n🎉 Всего распаршено: ${users.length} из ${jsonList.length}');
+            return users;
+        }
+        catch (e)
+        {
+            print('❌ Ошибка парсинга JSON: $e');
+            print('   responseBody (первые 500 символов): ${responseBody.substring(0, 500)}...');
+            
+            // Если не удалось распарсить, возвращаем пустой список
+            return [];
+        }
+    }
     
+    static Future<List<Workplace>> getUserWorkplaces(String userId) async
+    {
+        try
+        {
+            final response = await http.get(
+                Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
+                headers: {'Content-Type': 'application/json'},
+            );
+
+            print('✅Users Ответ получен, статус: ${response.statusCode}');
+            print('📦 Длина ответа: ${response.body.length} символов');
+
+            if (response.statusCode == 200)
+            {
+                return _parseUserWorkplacesResponse(response.body);
+            }
+            else
+            {
+                throw Exception('HTTP ${response.statusCode}');
+            }
+        }
+        catch (e)
+        {
+            print('❌ Ошибка в getUserWorkplaces: $e');
+            rethrow;
+        }
+    }    
+    
+    static List<Workplace> _parseUserWorkplacesResponse(String responseBody)
+    {
+        try
+        {
+            print('🔧 Парсинг JSON ответа...');
+            print(responseBody);
+            
+            // Пробуем распарсить
+            final List<dynamic> jsonList = jsonDecode(responseBody);
+            print('✅ JSON распарсен, элементов: ${jsonList.length}');
+            
+            // Парсим каждый элемент
+            final workplaces = <Workplace>[];
+            
+            for (int i = 0; i < jsonList.length; i++)
+            {
+                try
+                {
+                    final item = jsonList[i] as Map<String, dynamic>;
+                    print('\n   --- Элемент $i ---');
+                    
+                    final workplace = Workplace.fromJson(item);
+                    workplaces.add(workplace);
+                    
+                    print('   ✅ Успешно распарсено: ${workplace.name}');
+                }
+                catch (e)
+                {
+                    print('   ⚠️ Ошибка парсинга элемента $i: $e');
+                    print('   Элемент: ${jsonList[i]}');
+                    
+                    // Можно пропустить проблемный элемент или добавить дефолтный
+                    // workplaces.add(Workplace.fallback());
+                }
+            }
+            
+            print('\n🎉 Всего распаршено: ${workplaces.length} из ${jsonList.length}');
+            return workplaces;
+        }
+        catch (e)
+        {
+            print('❌ Ошибка парсинга JSON: $e');
+            print('   responseBody (первые 500 символов): ${responseBody.substring(0, 500)}...');
+            
+            // Если не удалось распарсить, возвращаем пустой список
+            return [];
+        }
+    }
+
+
     // Обновление статуса заказа
     static Future<bool> updateOrderStatus({
         required String orderId,

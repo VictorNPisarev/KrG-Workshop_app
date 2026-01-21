@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/orderInProduct.dart';
+import '../models/order_in_product.dart';
 import '../models/workplace.dart';
+import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_table_widget.dart';
 import 'order_detail_screen.dart';
@@ -15,153 +16,272 @@ class HomeScreen extends StatefulWidget
     State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin
 {
-    bool _isInitializing = false;
-    String? _error;
+    late TabController _tabController;
     
     @override
     void initState()
     {
         super.initState();
-        print('🏠 HomeScreen.initState');
-        _initializeData();
+        _tabController = TabController(length: 2, vsync: this);
+        
+        WidgetsBinding.instance.addPostFrameCallback((_)
+        {
+            _initializeHomeScreen();
+        });
     }
     
-    void _initializeData()
+    void _initializeHomeScreen()
     {
-        if (_isInitializing) return;
+        final authProvider = context.read<AuthProvider>();
+        final ordersProvider = context.read<OrdersProvider>();
         
-        setState(() => _isInitializing = true);
-        
-        // TODO: Получать workplaceId из настроек/авторизации
-        const workplaceId = 'kji1GgYVpS4EQLXb11Fkl7';
-        
-        print('🔄 HomeScreen: инициализация с workplaceId=$workplaceId');
-        
-        final provider = Provider.of<OrdersProvider>(
-            context, 
-            listen: false,
-        );
-        
-        provider.initialize(workplaceId).then((_)
+        final workplace = authProvider.currentWorkplace;
+        if (workplace != null)
         {
-            print('✅ HomeScreen: инициализация завершена');
-            setState(() => _isInitializing = false);
-        }).catchError((e)
-        {
-            print('❌ HomeScreen: ошибка инициализации - $e');
-            setState(()
-            {
-                _isInitializing = false;
-                _error = e.toString();
-            });
-        });
+            ordersProvider.initialize(workplace.id);
+        }
     }
     
     @override
     Widget build(BuildContext context)
     {
-        print('🏠 HomeScreen.build');
+        final authProvider = Provider.of<AuthProvider>(context);
+        final ordersProvider = Provider.of<OrdersProvider>(context);
+        final workplace = authProvider.currentWorkplace;
         
-        final provider = Provider.of<OrdersProvider>(context);
-        final workplace = provider.currentWorkplace;
+        if (workplace == null)
+        {
+            return const Scaffold(
+                body: Center(
+                    child: Text('Рабочее место не выбрано'),
+                ),
+            );
+        }
         
-        // Показываем индикатор загрузки при первой инициализации
-        if (_isInitializing || (provider.isLoading && !provider.isInitialized))
+        if (ordersProvider.isLoading && !ordersProvider.isInitialized)
         {
             return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
             );
         }
         
-        // Показываем ошибку если есть
-        if (_error != null || provider.error != null)
-        {
-            final errorMessage = _error ?? provider.error;
-            return Scaffold(
-                appBar: AppBar(title: const Text('Ошибка')),
-                body: Center(
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                            const Icon(Icons.error, color: Colors.red, size: 64),
-                            const SizedBox(height: 16),
-                            Text(
-                                errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.red),
-                            ),
-                            const SizedBox(height: 24),
-                            ElevatedButton(
-                                onPressed: _initializeData,
-                                child: const Text('Повторить'),
-                            ),
-                        ],
+        return Scaffold(
+            appBar: AppBar(
+                title: Text('Участок: ${workplace.name}'),
+                bottom: TabBar(
+                    controller: _tabController,
+                    tabs: const [
+                        Tab(
+                            icon: Icon(Icons.build),
+                            text: 'Текущие заказы',
+                        ),
+                        Tab(
+                            icon: Icon(Icons.queue),
+                            text: 'Ожидают обработки',
+                        ),
+                    ],
+                ),
+                actions: [
+                    IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: () => _refreshData(),
+                        tooltip: 'Обновить',
                     ),
-                ),
-            );
-        }
-        
-        // Проверяем, что рабочее место загружено
-        if (workplace == null)
-        {
-            return Scaffold(
-                appBar: AppBar(title: const Text('Ошибка')),
-                body: const Center(
-                    child: Text('Рабочее место не найдено'),
-                ),
-            );
-        }
-        
-        print('✅ HomeScreen: отрисовываю интерфейс для ${workplace.name}');
-        
-        // Возвращаем нормальный интерфейс
-        return _buildMainInterface(context, provider, workplace);
+                ],
+            ),
+            drawer: _buildDrawer(),
+            body: TabBarView(
+                controller: _tabController,
+                children: [
+                    _buildOrdersTab(
+                        ordersProvider.currentOrders,
+                        'Заказов в работе: ${ordersProvider.currentOrders.length}',
+                        Colors.blue,
+                    ),
+                    _buildOrdersTab(
+                        ordersProvider.pendingOrders,
+                        'Заказов ожидает: ${ordersProvider.pendingOrders.length}',
+                        Colors.orange,
+                    ),
+                ],
+            ),
+        );
     }
     
-    Widget _buildMainInterface(BuildContext context, OrdersProvider provider, Workplace workplace)
+    Drawer _buildDrawer()
     {
-        return DefaultTabController(
-            length: 2,
-            child: Scaffold(
-                appBar: AppBar(
-                    title: Text('Участок: ${workplace.name}'),
-                    bottom: const TabBar(
-                        tabs: [
-                            Tab(icon: Icon(Icons.build), text: 'Текущие заказы'),
-                            Tab(icon: Icon(Icons.queue), text: 'Ожидают обработки'),
-                        ],
+        final authProvider = Provider.of<AuthProvider>(context);
+        final user = authProvider.currentUser;
+        final workplaces = authProvider.availableWorkplaces;
+        final currentWorkplace = authProvider.currentWorkplace;
+        
+        return Drawer(
+            child: ListView(
+                children: [
+                    UserAccountsDrawerHeader(
+                        accountName: Text(user?.name ?? 'Сотрудник'),
+                        accountEmail: Text(user?.email ?? ''),
+                        currentAccountPicture: const CircleAvatar(
+                            child: Icon(Icons.person),
+                        ),
                     ),
-                    actions: [
-                        IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: _initializeData,
-                            tooltip: 'Обновить',
+                    
+                    // Текущий участок
+                    ListTile(
+                        leading: const Icon(Icons.work),
+                        title: const Text('Текущий участок'),
+                        subtitle: Text(currentWorkplace?.name ?? 'Не выбран'),
+                    ),
+                    
+                    const Divider(),
+                    
+                    // Переключение участков
+                    if (workplaces.length > 1) ...[
+                        const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                                'Переключить участок:',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                ),
+                            ),
                         ),
+                        
+                        ...workplaces.map((workplace)
+                        {
+                            return ListTile(
+                                leading: Icon(
+                                    Icons.switch_account,
+                                    color: workplace.id == currentWorkplace?.id
+                                        ? Colors.blue
+                                        : Colors.grey,
+                                ),
+                                title: Text(workplace.name),
+                                trailing: workplace.id == currentWorkplace?.id
+                                    ? const Icon(Icons.check, color: Colors.blue)
+                                    : null,
+                                onTap: () => _switchWorkplace(workplace),
+                            );
+                        }).toList(),
+                        
+                        const Divider(),
                     ],
-                ),
-                body: TabBarView(
-                    children: [
-                        _buildOrdersTab(
-                            provider.currentOrders,
-                            'Заказов в работе: ${provider.currentOrders.length}',
-                            Colors.blue,
-                        ),
-                        _buildOrdersTab(
-                            provider.pendingOrders,
-                            'Заказов ожидает: ${provider.pendingOrders.length}',
-                            Colors.orange,
-                        ),
-                    ],
-                ),
+                    
+                    // Профиль
+                    ListTile(
+                        leading: const Icon(Icons.person),
+                        title: const Text('Профиль'),
+                        onTap: () => _showProfile(context),
+                    ),
+                    
+                    // Настройки
+                    ListTile(
+                        leading: const Icon(Icons.settings),
+                        title: const Text('Настройки'),
+                        onTap: () => _showSettings(context),
+                    ),
+                    
+                    const Divider(),
+                    
+                    // Выход с подтверждением
+                    ListTile(
+                        leading: const Icon(Icons.exit_to_app, color: Colors.red),
+                        title: const Text('Выйти', style: TextStyle(color: Colors.red)),
+                        onTap: () => _confirmLogout(context),
+                    ),
+                ],
             ),
+        );
+    }
+    
+    void _confirmLogout(BuildContext context)
+    {
+        showDialog(
+            context: context,
+            builder: (BuildContext context)
+            {
+                return AlertDialog(
+                    title: const Text('Выход'),
+                    content: const Text('Вы уверены, что хотите выйти?'),
+                    actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Отмена'),
+                        ),
+                        TextButton(
+                            onPressed: ()
+                            {
+                                Navigator.pop(context); // Закрыть диалог
+                                _logout(context); // Выполнить выход
+                            },
+                            style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                            ),
+                            child: const Text('Выйти'),
+                        ),
+                    ],
+                );
+            },
+        );
+    }
+    
+    void _logout(BuildContext context) async
+    {
+        try
+        {
+            print('🚪 Выход из системы...');
+            
+            // 1. Получаем провайдеры
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
+            
+            // 2. Выполняем выход
+            await authProvider.logout();
+            ordersProvider.clearData(); // Очищаем данные заказов
+            
+            // 3. Закрываем Drawer если открыт
+            if (Scaffold.of(context).isDrawerOpen)
+            {
+                Navigator.pop(context); // Закрываем Drawer
+            }
+            
+            print('✅ Выход выполнен успешно');
+        }
+        catch (e)
+        {
+            print('❌ Ошибка при выходе: $e');
+            
+            // Показываем ошибку пользователю
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Ошибка при выходе: $e'),
+                    backgroundColor: Colors.red,
+                ),
+            );
+        }
+    }
+    
+    void _showProfile(BuildContext context)
+    {
+        // TODO: Реализовать экран профиля
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Профиль (в разработке)')),
+        );
+    }
+    
+    void _showSettings(BuildContext context)
+    {
+        // TODO: Реализовать экран настроек
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Настройки (в разработке)')),
         );
     }
     
     Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color)
     {
-        // Ваш существующий код вкладки
         return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -171,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Expanded(
                         child: OrderTableWidget(
                             orders: orders,
-                            onOrderSelected: (order) => _showOrderDetails(order),
+                            onOrderSelected: _showOrderDetails,
                         ),
                     ),
                 ],
@@ -206,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen>
     
     void _showOrderDetails(OrderInProduct order)
     {
-        final provider = Provider.of<OrdersProvider>(context, listen: false);
-        final workplace = provider.currentWorkplace;
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final workplace = authProvider.currentWorkplace;
         
         if (workplace == null) return;
         
@@ -220,5 +340,36 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
             ),
         );
+    }
+    
+    void _refreshData()
+    {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
+        
+        final workplace = authProvider.currentWorkplace;
+        if (workplace != null)
+        {
+            ordersProvider.initialize(workplace.id);
+        }
+    }
+    
+    void _switchWorkplace(Workplace workplace) async
+    {
+        final authProvider = context.read<AuthProvider>();
+        final ordersProvider = context.read<OrdersProvider>();
+        
+        await authProvider.selectWorkplace(workplace);
+        await ordersProvider.initialize(workplace.id);
+        
+        // Закрываем Drawer
+        Navigator.pop(context);
+    }
+    
+    @override
+    void dispose()
+    {
+        _tabController.dispose();
+        super.dispose();
     }
 }
