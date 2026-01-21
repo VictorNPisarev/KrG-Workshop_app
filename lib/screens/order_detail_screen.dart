@@ -63,8 +63,61 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         
         return Scaffold(
             appBar: AppBar(
-                title: Text('Заказ #${currentOrder.order?.orderNumber ?? ''}'),
-            ),
+                title: Row(
+                    children: [
+                        Text('Заказ #${currentOrder.orderNumber}'),
+                        const SizedBox(width: 8),
+                        // Иконки флагов
+                        if (currentOrder.econom)
+                            Tooltip(
+                                message: 'Эконом-заказ',
+                                child: Container(
+                                    margin: const EdgeInsets.only(left: 4),
+                                    child: Icon(
+                                        Icons.attach_money,
+                                        color: Colors.orange,
+                                        size: 20,
+                                    ),
+                                ),
+                            ),
+                        if (currentOrder.claim)
+                            Tooltip(
+                                message: 'Есть претензия',
+                                child: Container(
+                                    margin: const EdgeInsets.only(left: 4),
+                                    child: Icon(
+                                        Icons.warning,
+                                        color: Colors.red,
+                                        size: 20,
+                                    ),
+                                ),
+                            ),
+                        if (currentOrder.onlyPayed)
+                            Tooltip(
+                                message: 'Оплачен полностью',
+                                child: Container(
+                                    margin: const EdgeInsets.only(left: 4),
+                                    child: Icon(
+                                        Icons.payment,
+                                        color: Colors.green,
+                                        size: 20,
+                                    ),
+                                ),
+                            ),
+                    ],
+                ),
+                actions: [
+                    // Можно также добавить в actions для более стандартного отображения
+                    if (currentOrder.econom || currentOrder.claim || currentOrder.onlyPayed)
+                        Tooltip(
+                            message: 'Особые отметки заказа',
+                            child: Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade300,
+                            ),
+                        ),
+                ],
+            ),  
             body: Column(
                 children: [
                     Expanded(
@@ -132,7 +185,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             builder: (context) => AlertDialog(
                 title: const Text('Завершить заказ?'),
                 content: Text(
-                    'Вы уверены, что хотите завершить заказ ${order.order?.orderNumber}?',
+                    'Вы уверены, что хотите завершить заказ ${order.orderNumber}?',
                 ),
                 actions: [
                     TextButton(
@@ -156,9 +209,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    Widget _buildInfoCard(OrderInProduct orderInProduct)
+    Widget _buildInfoCard(OrderInProduct order)
     {
-        final order = orderInProduct.order;
         return Card(
             child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -173,21 +225,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             ),
                         ),
                         const Divider(),
-                        _buildInfoRow('Номер заказа:', order?.orderNumber ?? ''),
-                        _buildInfoRow('Срок исполнения:', 
-                            order != null ? _formatDate(order.readyDate) : ''),
-                        _buildInfoRow('Количество окон:', 
-                            order != null ? '${order.winCount} шт' : ''),
-                        _buildInfoRow('Площадь окон:', 
-                            order != null ? '${order.winArea} м²' : ''),
-                        _buildInfoRow('Количество плит:', 
-                            order != null ? '${order.plateCount} шт' : ''),
-                        _buildInfoRow('Площадь плит:', 
-                            order != null ? '${order.plateArea} м²' : ''),
-                        _buildInfoRow('Эконом:', order?.econom == true ? 'Да' : 'Нет'),
-                        _buildInfoRow('Претензия:', order?.claim == true ? 'Да' : 'Нет'),
-                        _buildInfoRow('Только оплаченные:', order?.onlyPayed == true ? 'Да' : 'Нет'),
-                    ],
+                        _buildInfoRow('Номер заказа:', order.orderNumber),
+                        _buildInfoRow('Срок исполнения:', _formatDate(order.readyDate)),
+                        _buildInfoRow('Количество окон:', '${order.winCount} шт'),
+                        _buildInfoRow('Площадь окон:', '${order.winArea} м²'),
+                        _buildInfoRow('Количество плит:', '${order.plateCount} шт'),
+                        _buildInfoRow('Площадь плит:', '${order.plateArea} м²'),
+                        _buildConditionalInfoRow('Эконом:', order.econom, 'Эконом-заказ', Colors.orange),
+                        _buildConditionalInfoRow('Претензия:', order.claim, 'Претензия!', Colors.red),
+                        _buildConditionalInfoRow('Только оплаченные:', order.onlyPayed, 'Оплачен полностью', Colors.green),                    ],
                 ),
             ),
         );
@@ -293,6 +339,41 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             ),
         );
     }
+
+    Widget _buildConditionalInfoRow(String label, bool condition, String trueText, [Color? color])
+    {
+        if (!condition) return const SizedBox.shrink(); // Не показываем если "Нет"
+        
+        return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    SizedBox(
+                        width: 150,
+                        child: Text(
+                            label,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey,
+                            ),
+                        ),
+                    ),
+                    Expanded(
+                        child: Text(
+                            trueText,
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: color ?? Colors.green, // Зеленый для положительных
+                                fontWeight: FontWeight.bold,
+                            ),
+                        ),
+                    ),
+                ],
+            ),
+        );
+    }
+
     
     String _formatDate(DateTime date)
     {

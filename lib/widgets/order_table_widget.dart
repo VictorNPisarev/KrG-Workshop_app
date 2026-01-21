@@ -28,6 +28,7 @@ class OrderTableWidget extends StatelessWidget
             child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
+                    showCheckboxColumn: false,
                     columnSpacing: 20,
                     horizontalMargin: 12,
                     columns: _buildTableColumns(),
@@ -80,19 +81,29 @@ class OrderTableWidget extends StatelessWidget
     
     List<DataCell> _buildRowCells(OrderInProduct orderInProduct, BuildContext context)
     {
-        final orderData = orderInProduct.order;
+        // Определяем символ для щитовых изделий
+        String plateSymbol = '';
+        if (orderInProduct.winCount == 0 && orderInProduct.plateCount > 0)
+        {
+            plateSymbol = '≡ '; // Можно заменить на иконку или другой символ
+        }
+        
+        // Определяем символ для претензии
+        String claimSymbol = '';
+        if (orderInProduct.claim)
+        {
+            claimSymbol = '⚠ '; // Предупреждение для претензии
+        }
         
         return [
             DataCell(
-                Text((orderData != null ? orderData.winCount == 0 && orderData.plateCount > 0 ? '≡' : 
-                                          orderData.claim ? '' : ''
-                                        : '') + 
-                    (orderData?.orderNumber ?? 'Нет номера'),
+                Text(
+                    '$claimSymbol$plateSymbol${orderInProduct.orderNumber}',
                     style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
             ),
-            DataCell(Text(_formatDate(orderData?.readyDate ?? DateTime.now()))),
-            DataCell(Text('${orderData?.winCount} шт')),
+            DataCell(Text(_formatDate(orderInProduct.readyDate))),
+            DataCell(Text('${orderInProduct.winCount} шт')),
             DataCell(
                 Chip(
                     label: Text(
