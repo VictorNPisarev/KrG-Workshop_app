@@ -370,7 +370,7 @@ class DataService
             Workplace(
                 id: '1', 
                 name: 'Торцовка', 
-                previousWorkPlace: null, 
+                previousWorkplace: null, 
                 nextWorkPlace: '2', 
                 isWorkPlace: true
             ),

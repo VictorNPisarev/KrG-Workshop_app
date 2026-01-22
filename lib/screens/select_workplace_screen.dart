@@ -77,8 +77,8 @@ class SelectWorkplaceScreen extends StatelessWidget
                                             workplace.name,
                                             style: const TextStyle(fontSize: 16),
                                         ),
-                                        subtitle: workplace.previousWorkPlace != null
-                                            ? Text('Следующий после: ${workplace.previousWorkPlace}')
+                                        subtitle: workplace.previousWorkplace != null
+                                            ? Text('Следующий после: ${workplace.previousWorkplace}')
                                             : const Text('Первый в цепочке'),
                                         trailing: const Icon(Icons.arrow_forward),
                                         onTap: () => _selectWorkplace(context, workplace),

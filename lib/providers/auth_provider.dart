@@ -30,16 +30,16 @@ class AuthProvider extends ChangeNotifier
             print('🔄 AuthProvider: начальная инициализация');
             
             // 1. Загружаем всех пользователей
-            final users = await DataService.getUsers();
-            print('✅ Загружено пользователей: ${users.length}');
+            //final users = await DataService.getUsers();
+            //print('✅ Загружено пользователей: ${users.length}');
             
             // 2. Загружаем связи пользователь-рабочее место
             //final userWorkplaces = await DataService.getUserWorkplaces();
             //print('✅ Загружено связей: ${userWorkplaces.length}');
             
             // 3. Загружаем рабочие места
-            final workplaces = await DataService.getWorkplaces();
-            print('✅ Загружено рабочих мест: ${workplaces.length}');
+            //final workplaces = await DataService.getWorkplaces();
+            //print('✅ Загружено рабочих мест: ${workplaces.length}');
             
             // 4. Здесь могла бы быть логика восстановления сессии
             // Например, из локального хранилища
@@ -68,8 +68,8 @@ class AuthProvider extends ChangeNotifier
         try
         {
             print('🔑 Вход пользователя: $email');
-            
             // 1. Загружаем пользователей
+            //TODO Зачем грузить всех пользователей, если надо только одного с параметром email
             final users = await DataService.getUsers();
             print('📊 Всего пользователей в системе: ${users.length}');
             print('📋 Список email: ${users.map((u) => u.email).toList()}');

@@ -43,6 +43,12 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
 
+  #для сохранения сессии (например, email для последующего автоматического входа)
+  shared_preferences: ^2.2.2
+  # Для получения email с устройства (опционально):
+  google_sign_in: ^6.1.4  # для Android
+  #apple_sign_in: ^1.0.0  # для iOS (если нужно)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

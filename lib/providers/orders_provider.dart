@@ -63,8 +63,8 @@ class OrdersProvider extends ChangeNotifier
             
             // Загружаем заказы (пока из локальных данных)
             // TODO: Позже замените на вызов API
-            //await _loadOrders();
-            _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+            await _loadOrders();
+            //_currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
             
             print('✅ Загружено заказов: ${_currentOrders.length}');
 
@@ -89,15 +89,24 @@ class OrdersProvider extends ChangeNotifier
         }
     }
 
-        void _useFallbackData(String workplaceId) async
+    void _useFallbackData(String workplaceId) async
     {
         print('🔄 Использую fallback данные...');
         
         // Используем DataService как fallback
-        //_currentWorkplace = DataService.getWorkplaceById(workplaceId);
         _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
-        //_pendingOrders = DataService.getPendingOrders(workplaceId);
-        //_isInitialized = true;
+        
+        // Если есть предыдущее рабочее место, загружаем и его заказы
+        if (_currentWorkplace!.previousWorkplace != null)
+        {
+            final previousOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
+            _pendingOrders = previousOrders.where((order) 
+                => order.status == OrderStatus.inProgress).toList();
+        }
+        else
+        {
+            _pendingOrders = [];
+        }
     }
 
     // Основная загрузка заказов
@@ -107,34 +116,40 @@ class OrdersProvider extends ChangeNotifier
         
         try
         {
-            // Получаем все заказы для текущего участка
-            final allOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+            print('🔄 Загрузка заказов для текущего участка...');
             
-            // Фильтруем текущие заказы (статус "в работе" и workplaceId совпадает)
-            _currentOrders = allOrders;/*allOrders.where((order) 
-                => order.workplaceId == _currentWorkplace!.id 
-                && order.status == OrderStatus.inProgress).toList();*/
+            // 1. Загружаем текущие заказы (для текущего рабочего места)
+            _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+            print('✅ Текущих заказов: ${_currentOrders.length}');
             
-            // Фильтруем ожидающие заказы (с предыдущего участка)
-            if (_currentWorkplace!.previousWorkPlace != null)
+            // 2. Если есть предыдущее рабочее место, загружаем ожидающие заказы
+            if (_currentWorkplace!.previousWorkplace != null)
             {
-                _pendingOrders = allOrders.where((order) 
-                    => order.workplaceId == _currentWorkplace!.previousWorkPlace 
-                    && order.status == OrderStatus.pending).toList();
+                print('🔄 Загрузка ожидающих заказов с предыдущего участка: ${_currentWorkplace!.previousWorkplace}');
+                
+                // Загружаем заказы с предыдущего рабочего места
+                _pendingOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
+                
+                /*final previousOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
+                // Фильтруем только те, которые в работе (inProgress) на предыдущем участке
+                _pendingOrders = previousOrders.where((order) 
+                    => order.status == OrderStatus.inProgress).toList();*/
+                
+                print('✅ Ожидающих заказов: ${_pendingOrders.length}');
             }
             else
             {
                 _pendingOrders = [];
+                print('ℹ️ Нет предыдущего рабочего места, ожидающие заказы не загружаются');
             }
         }
         catch (e)
         {
             _error = 'Ошибка загрузки заказов: ${e.toString()}';
-            // Можно залогировать или показать уведомление
-            print('Ошибка при загрузке заказов: $e');
+            print('❌ Ошибка при загрузке заказов: $e');
         }
     }
-    
+
     // Получить заказ по ID (ищет в обоих списках)
     OrderInProduct? getOrderById(String id)
     {
@@ -168,7 +183,7 @@ class OrdersProvider extends ChangeNotifier
             // Отправляем запрос на сервер
             final success = await DataService.updateOrderStatus(
                 orderId: order.id,
-                workplaceId: _currentWorkplace!.id,
+                workplaceId: _currentWorkplace!.id, // Меняем на текущее рабочее место
                 status: OrderStatus.inProgress,
                 comment: 'Взято в работу на участке ${_currentWorkplace!.name}',
             );
@@ -179,10 +194,12 @@ class OrdersProvider extends ChangeNotifier
                 final updatedOrder = order.copyWith(
                     status: OrderStatus.inProgress,
                     changeDate: DateTime.now(),
-                    workplaceId: _currentWorkplace!.id,
+                    workplaceId: _currentWorkplace!.id, // Важно: меняем workplaceId!
                 );
                 
                 _updateOrderInLists(updatedOrder);
+                
+                print('✅ Заказ ${order.orderNumber} взят в работу на участке ${_currentWorkplace!.name}');
             }
             else
             {
@@ -199,7 +216,7 @@ class OrdersProvider extends ChangeNotifier
             notifyListeners();
         }
     }
-    
+
     // Завершить заказ
     Future<void> completeOrder(OrderInProduct order) async
     {
@@ -251,14 +268,27 @@ class OrdersProvider extends ChangeNotifier
         _currentOrders.removeWhere((order) => order.id == updatedOrder.id);
         _pendingOrders.removeWhere((order) => order.id == updatedOrder.id);
         
-        // Добавляем в нужный список в зависимости от нового статуса
+        // Добавляем в нужный список в зависимости от нового статуса и рабочего места
         if (updatedOrder.status == OrderStatus.inProgress)
         {
-            _currentOrders.add(updatedOrder);
+            // Если заказ теперь на текущем рабочем месте - в текущие
+            if (updatedOrder.workplaceId == _currentWorkplace?.id)
+            {
+                _currentOrders.add(updatedOrder);
+            }
+            // Если заказ на предыдущем рабочем месте - в ожидающие
+            else if (updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace)
+            {
+                _pendingOrders.add(updatedOrder);
+            }
         }
         else if (updatedOrder.status == OrderStatus.pending)
         {
-            _pendingOrders.add(updatedOrder);
+            // Pending заказы обычно находятся на предыдущем участке
+            if (updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace)
+            {
+                _pendingOrders.add(updatedOrder);
+            }
         }
         // Завершенные заказы не показываем в списках
         
@@ -268,7 +298,7 @@ class OrdersProvider extends ChangeNotifier
         
         notifyListeners();
     }
-    
+
     // Ручное обновление (pull-to-refresh)
     Future<void> refreshOrders() async
     {
@@ -358,7 +388,7 @@ class OrdersProvider extends ChangeNotifier
     // Получить предыдущий участок (если есть)
     String? getPreviousWorkplaceId()
     {
-        return _currentWorkplace?.previousWorkPlace;
+        return _currentWorkplace?.previousWorkplace;
     }
 
     void clearData()
@@ -374,6 +404,28 @@ class OrdersProvider extends ChangeNotifier
         print('🗑️ OrdersProvider: данные очищены');
     }
     
+    // Ручное обновление всех заказов (и текущих и ожидающих)
+    Future<void> refreshAllOrders() async
+    {
+        _isLoading = true;
+        notifyListeners();
+        
+        try
+        {
+            await _loadOrders();
+            _error = null;
+        }
+        catch (e)
+        {
+            _error = 'Ошибка обновления: ${e.toString()}';
+        }
+        finally
+        {
+            _isLoading = false;
+            notifyListeners();
+        }
+    }
+
     // Очистка ресурсов при закрытии приложения
     @override
     void dispose()

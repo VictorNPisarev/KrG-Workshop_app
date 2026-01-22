@@ -6,13 +6,13 @@ class Workplace
     final String name;
     final bool isWorkPlace;
 
-    String? previousWorkPlace;
+    String? previousWorkplace;
     String? nextWorkPlace;
     
     Workplace({
         required this.id,
         required this.name,
-        required this.previousWorkPlace,
+        required this.previousWorkplace,
         required this.nextWorkPlace,
         required this.isWorkPlace,
     });
@@ -30,7 +30,7 @@ class Workplace
             id: id,
             name: name,
             isWorkPlace: isWorkPlace,
-            previousWorkPlace: previousWorkPlace,
+            previousWorkplace: previousWorkPlace,
             nextWorkPlace: nextWorkPlace
         );
     }
@@ -69,7 +69,7 @@ class Workplace
             return Workplace(
                 id: rowId.toString(),
                 name: status.toString(),
-                previousWorkPlace: previous?.toString(),
+                previousWorkplace: previous?.toString(),
                 nextWorkPlace: null, // Пока нет в данных
                 isWorkPlace: (isWorkplaceStr?.toString() ?? 'Нет').toLowerCase() == 'да',
             );
@@ -86,7 +86,7 @@ class Workplace
         return {
             'id': id,
             'name': name,
-            'previousWorkPlace': previousWorkPlace,
+            'previousWorkPlace': previousWorkplace,
             'nextWorkPlace': nextWorkPlace,
             'isWorkPlace': isWorkPlace,
         };
@@ -98,7 +98,7 @@ class Workplace
         return Workplace(
             id: 'fallback_$index',
             name: 'Участок $index (ошибка загрузки)',
-            previousWorkPlace: null,
+            previousWorkplace: null,
             nextWorkPlace: null,
             isWorkPlace: true,
         );

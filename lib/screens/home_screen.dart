@@ -19,7 +19,8 @@ class HomeScreen extends StatefulWidget
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin
 {
     late TabController _tabController;
-    
+    String? _previousWorkplaceId;
+
     @override
     void initState()
     {
@@ -30,6 +31,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         {
             _initializeHomeScreen();
         });
+    }
+
+    @override
+    void didChangeDependencies()
+    {
+        super.didChangeDependencies();
+        
+        final authProvider = Provider.of<AuthProvider>(context);
+        final ordersProvider = Provider.of<OrdersProvider>(context);
+        
+        final workplace = authProvider.currentWorkplace;
+        
+        // Если рабочее место изменилось
+        if (workplace != null && workplace.id != _previousWorkplaceId)
+        {
+            _previousWorkplaceId = workplace.id;
+            
+            // Загружаем заказы для нового рабочего места
+            if (!ordersProvider.isLoading && 
+                (ordersProvider.currentWorkplace?.id != workplace.id || 
+                 !ordersProvider.isInitialized))
+            {
+                WidgetsBinding.instance.addPostFrameCallback((_)
+                {
+                    ordersProvider.initialize(workplace.id);
+                });
+            }
+        }
     }
     
     void _initializeHomeScreen()
@@ -57,6 +86,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 body: Center(
                     child: Text('Рабочее место не выбрано'),
                 ),
+            );
+        }
+        
+        // Если OrdersProvider еще не инициализирован для текущего рабочего места
+        if (ordersProvider.currentWorkplace?.id != workplace.id && !ordersProvider.isLoading)
+        {
+            // Инициализируем в следующем кадре
+            WidgetsBinding.instance.addPostFrameCallback((_)
+            {
+                ordersProvider.initialize(workplace.id);
+            });
+            
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
             );
         }
         
@@ -132,10 +175,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ListTile(
                         leading: const Icon(Icons.work),
                         title: const Text('Текущий участок'),
-                        subtitle: Text(currentWorkplace?.name ?? 'Не выбран'),
-                    ),
-                    
-                    const Divider(),
+                        subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                                Text(currentWorkplace?.name ?? 'Не выбран'),
+                                if (currentWorkplace?.previousWorkplace != null)
+                                    Text(
+                                        'Предыдущий участок: ${currentWorkplace!.previousWorkplace}',
+                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                    ),
+                            ],
+                        ),
+                    ),                   
+                                        const Divider(),
                     
                     // Переключение участков
                     if (workplaces.length > 1) ...[
@@ -344,32 +396,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     
     void _refreshData()
     {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
-        
-        final workplace = authProvider.currentWorkplace;
-        if (workplace != null)
-        {
-            ordersProvider.initialize(workplace.id);
-        }
-    }
-    
+        ordersProvider.refreshAllOrders(); // Используем новый метод
+    }    
+
     void _switchWorkplace(Workplace workplace) async
     {
         final authProvider = context.read<AuthProvider>();
         final ordersProvider = context.read<OrdersProvider>();
         
-        await authProvider.selectWorkplace(workplace);
-        await ordersProvider.initialize(workplace.id);
-        
-        // Закрываем Drawer
+        // 1. Закрываем Drawer сразу
         Navigator.pop(context);
-    }
-    
-    @override
-    void dispose()
-    {
-        _tabController.dispose();
-        super.dispose();
+        
+        // 2. Показываем индикатор загрузки
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Переключаемся на ${workplace.name}...'),
+                duration: const Duration(seconds: 2),
+            ),
+        );
+        
+        // 3. Обновляем рабочее место в AuthProvider
+        await authProvider.selectWorkplace(workplace);
+        
+        // 4. Очищаем и загружаем заказы для нового рабочего места
+        ordersProvider.clearData();
+        await ordersProvider.initialize(workplace.id);
     }
 }
