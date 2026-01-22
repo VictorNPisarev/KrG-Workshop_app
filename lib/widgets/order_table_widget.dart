@@ -1,6 +1,6 @@
 // lib/widgets/order_table_widget.dart
 import 'package:flutter/material.dart';
-import '../models/orderInProduct.dart';
+import '../models/order_in_product.dart';
 
 class OrderTableWidget extends StatelessWidget
 {

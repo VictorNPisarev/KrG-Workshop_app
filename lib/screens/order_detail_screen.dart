@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/orderInProduct.dart';
+import '../models/order_in_product.dart';
 import '../models/workplace.dart';
 import '../providers/orders_provider.dart';
 
