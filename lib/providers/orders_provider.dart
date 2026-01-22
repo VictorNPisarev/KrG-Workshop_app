@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/order_in_product.dart';
 import '../models/workplace.dart';
 import '../services/data_service.dart';
+import '../utils/network_utils.dart';
 
 class OrdersProvider extends ChangeNotifier
 {
@@ -45,6 +46,12 @@ class OrdersProvider extends ChangeNotifier
         {
             print('🔄 OrdersProvider.initialize: начало, workplaceId=$workplaceId');
             
+            //Проверяем интернет (опционально, можно убрать если мешает)
+             if (!await NetworkUtils.hasInternetConnection()) 
+             {
+                 throw Exception('Нет подключения к интернету');
+             }
+
             // Загружаем рабочие места
             final workplaces = await DataService.getWorkplaces();
             print('✅ Загружено рабочих мест: ${workplaces.length}');

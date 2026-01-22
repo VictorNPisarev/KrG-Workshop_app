@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_in_product.dart';
@@ -11,6 +13,9 @@ class DataService
     static const String _baseUrl = 'https://script.google.com/macros/s/AKfycbzoDyvGU4ZHKg4oy1rGmxvxLTfnMATV21eYUzTFsj4pTxz3ii3sqw-i6fk5vElvrqBR-w/exec';
     static final http.Client _client = http.Client();
     
+    // Таймауты для мобильных устройств
+    static const Duration _timeoutDuration = Duration(seconds: 30);
+
     // Кэшированные данные на случай падения API
     static List<Workplace>? _cachedWorkplaces;
     static DateTime? _lastCacheUpdate;
@@ -27,7 +32,7 @@ class DataService
         {
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getWorkplaces'),
-            );
+            ).timeout(_timeoutDuration);
             
             print('✅ Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -40,6 +45,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -104,7 +119,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅ORders Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -117,6 +132,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -182,7 +207,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getUsers'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅Users Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -195,6 +220,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -259,7 +294,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅Users Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -272,6 +307,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
