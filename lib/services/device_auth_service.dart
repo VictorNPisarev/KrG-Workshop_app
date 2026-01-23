@@ -4,7 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class DeviceAuthService
 {
-    static const platform = MethodChannel('com.yourapp/device_email');
+    static const platform = MethodChannel('RedHill.workshop_app/device_email');
     
     // Получение email через Google Sign-In (для Android)
     static Future<String?> getEmailFromGoogle() async

@@ -1,5 +1,6 @@
 // lib/utils/network_utils.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class NetworkUtils
@@ -7,6 +8,11 @@ class NetworkUtils
     // Проверка подключения к интернету
     static Future<bool> hasInternetConnection() async
     {
+        // Для веба всегда возвращаем true
+        if (kIsWeb) {
+            return true;
+        }
+
         try
         {
             final result = await InternetAddress.lookup('google.com');

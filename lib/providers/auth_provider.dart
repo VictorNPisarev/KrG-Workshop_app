@@ -30,34 +30,30 @@ class AuthProvider extends ChangeNotifier
     // Инициализация при запуске приложения
     Future<void> initialize() async
     {
+        if (_isLoading) return;
+        
         _isLoading = true;
+        _error = null;
         notifyListeners();
+        
+        print('🔄 AuthProvider.initialize: НАЧАЛО');
         
         try
         {
-            print('🔄 AuthProvider: начальная инициализация');
+            // 1. СНАЧАЛА просто устанавливаем, что инициализация прошла
+            print('✅ Пропускаем загрузку данных для теста');
             
-            // 1. Загружаем всех пользователей
-            //final users = await DataService.getUsers();
-            //print('✅ Загружено пользователей: ${users.length}');
+            await Future.delayed(const Duration(seconds: 2)); // Имитация загрузки
             
-            // 2. Загружаем связи пользователь-рабочее место
-            //final userWorkplaces = await DataService.getUserWorkplaces();
-            //print('✅ Загружено связей: ${userWorkplaces.length}');
+            // 2. Помечаем как инициализированное
+            _isInitialized = true;
             
-            // 3. Загружаем рабочие места
-            //final workplaces = await DataService.getWorkplaces();
-            //print('✅ Загружено рабочих мест: ${workplaces.length}');
-            
-            // 4. Пытаемся восстановить сессию
-            await _restoreSession();
-            
-            print('✅ AuthProvider: инициализация завершена');
+            print('✅ AuthProvider.initialize: ЗАВЕРШЕНО (упрощенная версия)');
         }
         catch (e)
         {
-            _error = 'Ошибка инициализации: $e';
-            print('❌ AuthProvider: ошибка инициализации - $e');
+            _error = 'Ошибка: $e';
+            print('❌ Ошибка: $e');
         }
         finally
         {
@@ -89,18 +85,15 @@ class AuthProvider extends ChangeNotifier
             
             print('🔄 Восстановление сессии для email: $savedEmail');
             
-            //TODO Зачем грузить всех пользователей, если надо только одного с параметром email
-            final users = await DataService.getUsers();
-            print('📊 Всего пользователей в системе: ${users.length}');
-            print('📋 Список email: ${users.map((u) => u.email).toList()}');
-
             // Ищем пользователя
-            final user = users.firstWhere(
-                (u) => u.email.toLowerCase() == savedEmail.toLowerCase(),
-                orElse: () => throw Exception('Сохраненный пользователь не найден'),
-            );
-            
+            final user = await DataService.getUserByEmail(savedEmail);
+
+            if (user == null)
+            {
+                throw Exception('Email не найден');
+            }            
             _currentUser = user;
+
             print('✅ Пользователь восстановлен: ${user.name}');
             
             // Загружаем рабочие места пользователя
@@ -144,22 +137,19 @@ class AuthProvider extends ChangeNotifier
         try
         {
             print('🔑 Вход пользователя: $email, rememberMe: $rememberMe');
-            // 1. Загружаем пользователей
-            //TODO Зачем грузить всех пользователей, если надо только одного с параметром email
-            final users = await DataService.getUsers();
-            print('📊 Всего пользователей в системе: ${users.length}');
-            print('📋 Список email: ${users.map((u) => u.email).toList()}');
             
-            // 2. Ищем пользователя
-            final user = users.firstWhere(
-                (u) => u.email.toLowerCase() == email.toLowerCase(),
-                orElse: () => throw Exception('Пользователь с email $email не найден'),
-            );
-            
+            // Ищем пользователя
+            final user = await DataService.getUserByEmail(email);
+
+            if (user == null)
+            {
+                throw Exception('Email не найден');
+            }            
             _currentUser = user;
+
             print('✅ Пользователь найден: ${user.name} (ID: ${user.id})');
             
-            // 3. Загружаем доступные рабочие места пользователя
+            // Загружаем доступные рабочие места пользователя
             await _loadUserWorkplaces(user.id);
             
             // Сохраняем сессию если нужно
@@ -172,7 +162,7 @@ class AuthProvider extends ChangeNotifier
                 await _clearSession();
             }
  
-            // 4. Если только одно рабочее место - выбираем автоматически
+            // Если только одно рабочее место - выбираем автоматически
             if (_availableWorkplaces.length == 1)
             {
                 await selectWorkplace(_availableWorkplaces.first);
