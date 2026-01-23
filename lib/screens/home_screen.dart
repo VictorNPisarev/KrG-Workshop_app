@@ -6,6 +6,7 @@ import '../models/workplace.dart';
 import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_table_widget.dart';
+import 'debug_screen.dart';
 import 'order_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget
@@ -135,7 +136,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ],
             ),
             drawer: _buildDrawer(),
-            body: TabBarView(
+            body: GestureDetector(
+    onLongPress: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DebugScreen()),
+        );
+    },
+    child:TabBarView(
                 controller: _tabController,
                 children: [
                     _buildOrdersTab(
@@ -150,6 +158,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                 ],
             ),
+            )
         );
     }
     

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_in_product.dart';
@@ -11,6 +13,9 @@ class DataService
     static const String _baseUrl = 'https://script.google.com/macros/s/AKfycbzoDyvGU4ZHKg4oy1rGmxvxLTfnMATV21eYUzTFsj4pTxz3ii3sqw-i6fk5vElvrqBR-w/exec';
     static final http.Client _client = http.Client();
     
+    // Таймауты для мобильных устройств
+    static const Duration _timeoutDuration = Duration(seconds: 30);
+
     // Кэшированные данные на случай падения API
     static List<Workplace>? _cachedWorkplaces;
     static DateTime? _lastCacheUpdate;
@@ -27,7 +32,7 @@ class DataService
         {
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getWorkplaces'),
-            );
+            ).timeout(_timeoutDuration);
             
             print('✅ Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -40,6 +45,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -104,7 +119,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅ORders Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -117,6 +132,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -182,7 +207,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getUsers'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅Users Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -195,6 +220,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {
@@ -251,7 +286,94 @@ class DataService
             return [];
         }
     }
+
+    static Future<User?> getUserByEmail(String email) async
+    {
+        try
+        {
+            final response = await http.get(
+                Uri.parse('$_baseUrl?action=getUserByEmail&email=$email'),
+                headers: {'Content-Type': 'application/json'},
+            ).timeout(_timeoutDuration);
+
+            print('✅UserByEmail Ответ получен, статус: ${response.statusCode}');
+            print('📦 Длина ответа: ${response.body.length} символов');
+
+            if (response.statusCode == 200)
+            {
+                return _parseUserResponse(response.body);
+            }
+            else
+            {
+                throw Exception('HTTP ${response.statusCode}');
+            }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
+        }
+        catch (e)
+        {
+            print('❌ Ошибка в getUserByEmail: $e');
+            rethrow;
+        }
+    }    
     
+    static User? _parseUserResponse(String responseBody)
+    {
+        try
+        {
+            print('🔧 Парсинг JSON ответа...');
+            print(responseBody);
+            
+            // Пробуем распарсить
+            final List<dynamic> jsonList = jsonDecode(responseBody);
+            print('✅ JSON распарсен, элементов: ${jsonList.length}');
+            
+            // Парсим каждый элемент
+            final workplaces = <Workplace>[];
+            
+            for (int i = 0; i < jsonList.length; i++)
+            {
+                try
+                {
+                    final item = jsonList[i] as Map<String, dynamic>;
+                    print('\n   --- Элемент $i ---');
+                    
+                    final user = User.fromJson(item);
+                    
+                    print('   ✅ Успешно распарсено для: ${user.email}');
+
+                    //Возвращаю первого удачно распарсенного пользователя (если вдруг в ответе не 1)
+                    return user;
+                }
+                catch (e)
+                {
+                    print('   ⚠️ Ошибка парсинга элемента $i: $e');
+                    print('   Элемент: ${jsonList[i]}');
+                }
+            }
+
+            //Возвращаю null, т.к. при удачном распарсивании пользователя, return произошел бы в цикле
+            return null;
+        }
+        catch (e)
+        {
+            print('❌ Ошибка парсинга JSON: $e');
+            print('   responseBody (первые 500 символов): ${responseBody.substring(0, 500)}...');
+            
+            // Если не удалось распарсить, возвращаем null
+            return null;
+        }
+    }
+
+
     static Future<List<Workplace>> getUserWorkplaces(String userId) async
     {
         try
@@ -259,7 +381,7 @@ class DataService
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
                 headers: {'Content-Type': 'application/json'},
-            );
+            ).timeout(_timeoutDuration);
 
             print('✅Users Ответ получен, статус: ${response.statusCode}');
             print('📦 Длина ответа: ${response.body.length} символов');
@@ -272,6 +394,16 @@ class DataService
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
+        }
+        on TimeoutException catch (e)
+        {
+            print('⏰ Таймаут запроса: $e');
+            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
+        }
+        on SocketException catch (e)
+        {
+            print('📡 Ошибка сети: $e');
+            throw Exception('Нет подключения к интернету');
         }
         catch (e)
         {

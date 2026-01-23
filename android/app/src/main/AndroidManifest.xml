@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Разрешение на интернет -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Если нужен доступ к Wi-Fi состоянию (опционально) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- Если будете получать email с устройства (Android) -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    
     <application
         android:label="workshop_app"
         android:name="${applicationName}"
