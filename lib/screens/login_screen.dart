@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../services/device_auth_service.dart';
 
@@ -30,10 +31,30 @@ class _LoginScreenState extends State<LoginScreen>
     Future<void> _checkSavedEmail() async
     {
         final authProvider = context.read<AuthProvider>();
-        await Future.delayed(const Duration(milliseconds: 500));
         
-        // Автоматически заполняем email если есть в сессии
-        // (сессия уже восстановлена в auth_provider)
+        // Пробуем получить email с устройства
+        final prefs = await SharedPreferences.getInstance();
+        final rememberMe = prefs.getBool(authProvider.keyRememberMe) ?? false;
+            
+        if (!rememberMe)
+        {
+            print('ℹ️ Remember me отключен, сессия не восстанавливается');
+            return;
+        }
+            
+        final savedEmail = prefs.getString(authProvider.keyUserEmail);
+        if (savedEmail != null && savedEmail.isNotEmpty)
+        {
+            print('🔄 Восстановление сессии для email: $savedEmail');
+            _emailController.text = savedEmail;
+        }
+        else
+        {
+            print('ℹ️ Нет сохраненного email');
+            return;
+        }
+            
+        await _login();
     }
     
     @override
