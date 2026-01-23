@@ -16,9 +16,12 @@ class AuthProvider extends ChangeNotifier
      
     // Ключи для SharedPreferences
     static const String _keyUserEmail = 'user_email';
+    String get keyUserEmail => _keyUserEmail;
     static const String _keyWorkplaceId = 'workplace_id';
+    String get keyWorkplaceId => _keyWorkplaceId;
     static const String _keyRememberMe = 'remember_me';
-
+    String get keyRememberMe => _keyRememberMe;
+    
     User? get currentUser => _currentUser;
     Workplace? get currentWorkplace => _currentWorkplace;
     List<Workplace> get availableWorkplaces => _availableWorkplaces;
