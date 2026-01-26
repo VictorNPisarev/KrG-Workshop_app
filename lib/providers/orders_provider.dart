@@ -127,6 +127,7 @@ class OrdersProvider extends ChangeNotifier
             
             // 1. Загружаем текущие заказы (для текущего рабочего места)
             _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+            _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
             print('✅ Текущих заказов: ${_currentOrders.length}');
             
             // 2. Если есть предыдущее рабочее место, загружаем ожидающие заказы
@@ -136,6 +137,7 @@ class OrdersProvider extends ChangeNotifier
                 
                 // Загружаем заказы с предыдущего рабочего места
                 _pendingOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
+                _pendingOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
                 
                 /*final previousOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
                 // Фильтруем только те, которые в работе (inProgress) на предыдущем участке
@@ -187,35 +189,47 @@ class OrdersProvider extends ChangeNotifier
         
         try
         {
+            print('🔄 Берем заказ в работу: ${order.orderNumber}');
+            
             // Отправляем запрос на сервер
-            final success = await DataService.updateOrderStatus(
+            final response = await DataService.updateOrderStatus(
                 orderId: order.id,
-                workplaceId: _currentWorkplace!.id, // Меняем на текущее рабочее место
+                workplaceId: _currentWorkplace!.id,
                 status: OrderStatus.inProgress,
                 comment: 'Взято в работу на участке ${_currentWorkplace!.name}',
             );
             
-            if (success)
+            if (response['success'] == true)
             {
                 // Локально обновляем заказ
                 final updatedOrder = order.copyWith(
                     status: OrderStatus.inProgress,
                     changeDate: DateTime.now(),
-                    workplaceId: _currentWorkplace!.id, // Важно: меняем workplaceId!
+                    workplaceId: _currentWorkplace!.id,
                 );
                 
                 _updateOrderInLists(updatedOrder);
                 
-                print('✅ Заказ ${order.orderNumber} взят в работу на участке ${_currentWorkplace!.name}');
+                print('✅ Заказ ${order.orderNumber} успешно взят в работу');
+                
+                // Показываем уведомление
+                if (_error == null) {
+                    _showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
+                }
             }
             else
             {
-                _error = 'Не удалось обновить статус заказа на сервере';
+                _error = 'Не удалось обновить статус заказа на сервере: ${response['message']}';
+                print('❌ Ошибка сервера: ${response['message']}');
             }
         }
         catch (e)
         {
             _error = 'Ошибка сети: ${e.toString()}';
+            print('❌ Ошибка при взятии заказа в работу: $e');
+            
+            // При ошибке сети можно предложить повторить или работать в оффлайн-режиме
+            _showErrorNotification('Ошибка сети. Попробуйте позже.');
         }
         finally
         {
@@ -234,15 +248,17 @@ class OrdersProvider extends ChangeNotifier
         
         try
         {
+            print('🔄 Завершаем заказ: ${order.orderNumber}');
+            
             // Отправляем запрос на сервер
-            final success = await DataService.updateOrderStatus(
+            final response = await DataService.updateOrderStatus(
                 orderId: order.id,
                 workplaceId: _currentWorkplace!.id,
                 status: OrderStatus.completed,
                 comment: 'Завершено на участке ${_currentWorkplace!.name}',
             );
             
-            if (success)
+            if (response['success'] == true)
             {
                 // Локально обновляем заказ
                 final updatedOrder = order.copyWith(
@@ -251,15 +267,24 @@ class OrdersProvider extends ChangeNotifier
                 );
                 
                 _updateOrderInLists(updatedOrder);
+                
+                print('✅ Заказ ${order.orderNumber} успешно завершен');
+                
+                if (_error == null) {
+                    _showSuccessNotification('Заказ ${order.orderNumber} завершен');
+                }
             }
             else
             {
-                _error = 'Не удалось обновить статус заказа на сервере';
+                _error = 'Не удалось завершить заказ: ${response['message']}';
+                print('❌ Ошибка сервера: ${response['message']}');
             }
         }
         catch (e)
         {
             _error = 'Ошибка сети: ${e.toString()}';
+            print('❌ Ошибка при завершении заказа: $e');
+            _showErrorNotification('Ошибка сети. Попробуйте позже.');
         }
         finally
         {
@@ -267,7 +292,18 @@ class OrdersProvider extends ChangeNotifier
             notifyListeners();
         }
     }
-    
+
+    // Вспомогательные методы для уведомлений
+    void _showSuccessNotification(String message)
+    {
+        // Можно использовать ScaffoldMessenger или другой способ показа уведомлений
+        print('✅ $message');
+    }
+
+    void _showErrorNotification(String message)
+    {
+        print('❌ $message');
+    }    
     // Обновление заказов в списках (после изменений)
     void _updateOrderInLists(OrderInProduct updatedOrder)
     {
@@ -430,6 +466,30 @@ class OrdersProvider extends ChangeNotifier
         {
             _isLoading = false;
             notifyListeners();
+        }
+    }
+
+    Future<void> _retryFailedUpdate(OrderInProduct order, OrderStatus targetStatus) async
+    {
+        print('🔄 Повторная попытка обновления заказа ${order.orderNumber}');
+        
+        try
+        {
+            final response = await DataService.updateOrderStatus(
+                orderId: order.id,
+                workplaceId: _currentWorkplace!.id,
+                status: targetStatus,
+                comment: 'Повторная попытка после ошибки сети',
+            );
+            
+            if (response['success'] == true)
+            {
+                print('✅ Повторное обновление успешно');
+            }
+        }
+        catch (e)
+        {
+            print('❌ Повторная ошибка: $e');
         }
     }
 
