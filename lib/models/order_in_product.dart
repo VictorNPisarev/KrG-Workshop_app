@@ -125,6 +125,11 @@ class OrderInProduct
     {
         return this.workplaceId == workplaceId;
     }
+
+    void setStatusByWorkplace (String workplaceId)
+    {
+        status = isInWorkplace(workplaceId) ? OrderStatus.inProgress : OrderStatus.pending;
+    }
 }
 
 // Перечисление статусов заказа

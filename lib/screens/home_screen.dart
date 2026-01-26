@@ -150,11 +150,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ordersProvider.currentOrders,
                         'Заказов в работе: ${ordersProvider.currentOrders.length}',
                         Colors.blue,
+                        true
                     ),
                     _buildOrdersTab(
                         ordersProvider.pendingOrders,
                         'Заказов ожидает: ${ordersProvider.pendingOrders.length}',
                         Colors.orange,
+                        false
                     ),
                 ],
             ),
@@ -341,25 +343,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         );
     }
     
-    Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color)
-    {
-        return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-                children: [
-                    _buildSummaryInfo(summary, color),
-                    const SizedBox(height: 16),
-                    Expanded(
-                        child: OrderTableWidget(
-                            orders: orders,
-                            onOrderSelected: _showOrderDetails,
-                        ),
+Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color, bool isCurrentTab)
+{
+    return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+            children: [
+                _buildSummaryInfo(summary, color),
+                const SizedBox(height: 16),
+                Expanded(
+                    child: OrderTableWidget(
+                        orders: orders,
+                        onOrderSelected: _showOrderDetails,
+                        // Передаем информацию о текущей вкладке
+                        isCurrentTab: isCurrentTab,
                     ),
-                ],
-            ),
-        );
-    }
-    
+                ),
+            ],
+        ),
+    );
+}    
     Widget _buildSummaryInfo(String text, Color color)
     {
         return Container(

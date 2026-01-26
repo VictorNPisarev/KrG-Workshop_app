@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/order_in_product.dart';
 import '../models/workplace.dart';
+import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 
 class OrderDetailScreen extends StatefulWidget
@@ -48,8 +49,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     Widget build(BuildContext context)
     {
         // Получаем актуальную версию заказа при каждом build
-        final provider = context.watch<OrdersProvider>();
-        final currentOrder = provider.getOrderById(widget.orderId) ?? _currentOrder;
+        final ordersProvider = context.watch<OrdersProvider>();
+        final authProvider = context.watch<AuthProvider>();
+
+        final currentOrder = ordersProvider.getOrderById(widget.orderId) ?? _currentOrder;
         
         if (currentOrder == null)
         {
@@ -60,7 +63,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         
         final isCurrentOrder = currentOrder.status == OrderStatus.inProgress;
         final isPendingOrder = currentOrder.status == OrderStatus.pending;
+        final isCompleted = currentOrder.status == OrderStatus.completed;
         
+        // Проверяем, доступна ли кнопка "Взять в работу"
+        final canTakeToWork = isPendingOrder && 
+            ordersProvider.currentWorkplace?.id != null &&
+            currentOrder.workplaceId != ordersProvider.currentWorkplace?.id;
+        
+        // Проверяем, доступна ли кнопка "Завершить"
+        final canComplete = isCurrentOrder && 
+            ordersProvider.currentWorkplace?.id != null &&
+            currentOrder.workplaceId == ordersProvider.currentWorkplace?.id;
+    
+
         return Scaffold(
             appBar: AppBar(
                 title: Row(
@@ -82,7 +97,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                             ),
                         if (currentOrder.claim)
                             Tooltip(
-                                message: 'Есть претензия',
+                                message: 'Рекламация',
                                 child: Container(
                                     margin: const EdgeInsets.only(left: 4),
                                     child: Icon(
@@ -136,36 +151,76 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         ),
                     ),
                     // Кнопки действий
-                    if (isCurrentOrder || isPendingOrder)
-                        Container(
-                            padding: const EdgeInsets.all(16),
-                            color: Colors.grey[100],
-                            child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                    if (isPendingOrder)
-                                        ElevatedButton.icon(
+                    if (canTakeToWork || canComplete)
+                    Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            border: Border(top: BorderSide(color: Colors.grey)),
+                        ),
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                                // Кнопка "Взять в работу" - только для ожидающих заказов
+                                if (canTakeToWork)
+                                    Expanded(
+                                        child: ElevatedButton.icon(
                                             icon: const Icon(Icons.play_arrow),
                                             label: const Text('Взять в работу'),
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.green,
+                                                padding: const EdgeInsets.symmetric(vertical: 16),
                                             ),
                                             onPressed: () => _takeToWork(context, currentOrder),
                                         ),
-                                    if (isPendingOrder && isCurrentOrder)
-                                        const SizedBox(width: 16),
-                                    if (isCurrentOrder)
-                                        ElevatedButton.icon(
+                                    ),
+                                
+                                // Отступ между кнопками
+                                if (canTakeToWork && canComplete)
+                                    const SizedBox(width: 16),
+                                
+                                // Кнопка "Завершить" - только для текущих заказов
+                                if (canComplete)
+                                    Expanded(
+                                        child: ElevatedButton.icon(
                                             icon: const Icon(Icons.check),
                                             label: const Text('Завершить'),
                                             style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.blue,
+                                                padding: const EdgeInsets.symmetric(vertical: 16),
                                             ),
                                             onPressed: () => _completeOrder(context, currentOrder),
                                         ),
-                                ],
-                            ),
+                                    ),
+                            ],
                         ),
+                    ),
+                                    // Индикатор загрузки
+                if (ordersProvider.isLoading)
+                    const LinearProgressIndicator(),
+                    
+                // Отображение ошибки
+                if (ordersProvider.error != null)
+                    Container(
+                        padding: const EdgeInsets.all(12),
+                        color: Colors.red[50],
+                        child: Row(
+                            children: [
+                                const Icon(Icons.error, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: Text(
+                                        ordersProvider.error!,
+                                        style: const TextStyle(color: Colors.red),
+                                    ),
+                                ),
+                                IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () => ordersProvider.clearError(),
+                                ),
+                            ],
+                        ),
+                    ),
                 ],
             ),
         );
@@ -173,13 +228,40 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     
     void _takeToWork(BuildContext context, OrderInProduct order)
     {
-        final provider = context.read<OrdersProvider>();
-        provider.takeOrderToWork(order);
+        final ordersProvider = context.read<OrdersProvider>();
+        
+        // Показываем подтверждение
+        showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+                title: const Text('Взять заказ в работу?'),
+                content: Text(
+                    'Вы уверены, что хотите взять в работу заказ ${order.orderNumber}?',
+                ),
+                actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Отмена'),
+                    ),
+                    ElevatedButton(
+                        onPressed: () {
+                            Navigator.pop(context); // Закрыть диалог
+                            ordersProvider.takeOrderToWork(order);
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                        ),
+                        child: const Text('Взять в работу'),
+                    ),
+                ],
+            ),
+        );
     }
     
     void _completeOrder(BuildContext context, OrderInProduct order)
     {
-        final provider = context.read<OrdersProvider>();
+        final ordersProvider = context.read<OrdersProvider>();
+        
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -193,11 +275,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         child: const Text('Отмена'),
                     ),
                     ElevatedButton(
-                        onPressed: ()
-                        {
-                            provider.completeOrder(order);
-                            Navigator.pop(context); // Закрыть диалог
-                            Navigator.pop(context); // Закрыть экран деталей
+                        onPressed: () {
+                            Navigator.pop(context);
+                            ordersProvider.completeOrder(order);
+                            
+                            // Автоматически закрываем экран через 2 секунды
+                            Future.delayed(const Duration(seconds: 2), () {
+                                if (context.mounted) {
+                                    Navigator.pop(context);
+                                }
+                            });
                         },
                         style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
@@ -208,7 +295,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             ),
         );
     }
-    
+
     Widget _buildInfoCard(OrderInProduct order)
     {
         return Card(
@@ -265,18 +352,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                     ),
                                     backgroundColor: _getStatusColor(orderInProduct.status),
                                 ),
-                                const Spacer(),
+                                /*const Spacer(),
                                 Text(
                                     'Участок: ${orderInProduct.workplaceId}',
                                     style: const TextStyle(color: Colors.grey),
-                                ),
+                                ),*/
                             ],
                         ),
                         Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                                 'Изменен: ${_formatDate(orderInProduct.changeDate)}',
-                                style: const TextStyle(color: Colors.grey),
+                                style: const TextStyle(color: Colors.indigo),
                             ),
                         ),
                     ],

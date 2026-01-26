@@ -463,38 +463,55 @@ class DataService
 
 
     // Обновление статуса заказа
-    static Future<bool> updateOrderStatus({
-        required String orderId,
-        required String workplaceId,
-        required OrderStatus status,
-        String comment = '',
+    static Future<Map<String, dynamic>> updateOrderStatus({
+    required String orderId,
+    required String workplaceId,
+    required OrderStatus status,
+    String comment = '',
     }) async
     {
         try
         {
+            print('📤 Отправка обновления заказа:');
+            print('   ID: $orderId');
+            print('   Workplace: $workplaceId');
+            print('   Status: ${status.name}');
+            print('   Comment: $comment');
+            
             final response = await _client.post(
                 Uri.parse(_baseUrl),
                 headers: {'Content-Type': 'application/json'},
                 body: json.encode({
-                    'action': 'update_order',
-                    'order_id': orderId,
-                    'workplace_id': workplaceId,
-                    'status': status.name,
-                    'comment': comment,
-                    'timestamp': DateTime.now().toIso8601String(),
+                    'action': 'updateOrderWorkplace',
+                    'payload': {
+                        'orderInProductId': orderId,
+                        'workplaceId': workplaceId,
+                        'status': status.name, // Используем name, например 'inProgress'
+                    },
                 }),
-            );
+            ).timeout(const Duration(seconds: 10));
             
-            return response.statusCode == 200;
+            print('📥 Ответ сервера: ${response.statusCode}');
+            print('📦 Тело ответа: ${response.body}');
+            
+            if (response.statusCode == 200)
+            {
+                final responseData = json.decode(response.body);
+                print('✅ Успешный ответ от сервера: $responseData');
+                return responseData;
+            }
+            else
+            {
+                throw Exception('HTTP ${response.statusCode}: ${response.body}');
+            }
         }
         catch (e)
         {
-            // При ошибке сети возвращаем false
-            print('Ошибка обновления: $e');
-            return false;
+            print('❌ Ошибка обновления заказа: $e');
+            rethrow;
         }
     }
-    
+        
     // Mock-данные на случай падения API
     static List<Workplace> _getMockWorkplaces()
     {

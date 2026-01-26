@@ -6,11 +6,13 @@ class OrderTableWidget extends StatelessWidget
 {
     final List<OrderInProduct> orders;
     final Function(OrderInProduct) onOrderSelected;
+    final bool isCurrentTab;
     
     const OrderTableWidget({
         super.key,
         required this.orders,
-        required this.onOrderSelected,
+        required this.onOrderSelected, 
+        this.isCurrentTab = true
     });
     
     @override
@@ -18,9 +20,7 @@ class OrderTableWidget extends StatelessWidget
     {
         if (orders.isEmpty)
         {
-            return const Center(
-                child: Text('Нет заказов для отображения'),
-            );
+            return _buildEmptyState();
         }
         
         return SingleChildScrollView(
@@ -122,6 +122,30 @@ class OrderTableWidget extends StatelessWidget
             ),
         ];
     }
+
+    Widget _buildEmptyState()
+    {
+        return Center(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                    Icon(
+                        isCurrentTab ? Icons.work_outline : Icons.hourglass_empty,
+                        size: 64,
+                        color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                        isCurrentTab 
+                            ? 'Нет заказов в работе' 
+                            : 'Нет ожидающих заказов',
+                        style: const TextStyle(color: Colors.grey),
+                    ),
+                ],
+            ),
+        );
+    }
+
     
     String _formatDate(DateTime date)
     {
