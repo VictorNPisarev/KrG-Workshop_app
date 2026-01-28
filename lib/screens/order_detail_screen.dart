@@ -226,38 +226,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    void _takeToWork(BuildContext context, OrderInProduct order)
+    void _takeToWork(BuildContext context, OrderInProduct order) 
     {
         final ordersProvider = context.read<OrdersProvider>();
         
-        // Показываем подтверждение
-        showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-                title: const Text('Взять заказ в работу?'),
-                content: Text(
-                    'Вы уверены, что хотите взять в работу заказ ${order.orderNumber}?',
-                ),
-                actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Отмена'),
-                    ),
-                    ElevatedButton(
-                        onPressed: () {
-                            Navigator.pop(context); // Закрыть диалог
-                            ordersProvider.takeOrderToWork(order);
-                        },
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                        ),
-                        child: const Text('Взять в работу'),
-                    ),
-                ],
+        // Немедленная обратная связь
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Заказ ${order.orderNumber} берется в работу...'),
+                duration: const Duration(seconds: 2),
             ),
         );
+        
+        // Оптимистичное обновление - сразу меняем статус
+        ordersProvider.takeOrderToWork(order);
+        
+        // Закрываем экран через 1 секунду
+        Future.delayed(const Duration(seconds: 1), () 
+        {
+            if (context.mounted) 
+            {
+                Navigator.pop(context);
+            }
+        });
     }
-    
+
     void _completeOrder(BuildContext context, OrderInProduct order)
     {
         final ordersProvider = context.read<OrdersProvider>();
