@@ -323,10 +323,18 @@ class OrdersProvider extends ChangeNotifier
         // Завершенные заказы не показываем в списках
         
         // Сортируем по дате изменения (новые сверху)
-        _currentOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
-        _pendingOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
+        _sortOrdersIfNeeded();
         
         notifyListeners();
+    }
+
+    bool _needsSorting = false;
+    void _sortOrdersIfNeeded() {
+        if (!_needsSorting) return;
+        
+        _currentOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
+        _pendingOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
+        _needsSorting = false;
     }
 
     // Ручное обновление (pull-to-refresh)

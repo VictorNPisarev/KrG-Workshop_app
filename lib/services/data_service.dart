@@ -37,9 +37,14 @@ class DataService
     static const Duration _workplaceCacheDuration = Duration(minutes: 5);
     
     // КЭШ для заказов по участкам (1 минута)
-    static final Map<String, CacheEntry<List<OrderInProduct>>> _ordersCache = {};
+    //static final Map<String, CacheEntry<List<OrderInProduct>>> _ordersCache = {};
     static const Duration _ordersCacheDuration = Duration(minutes: 1);
     
+    static final Map<String, List<OrderInProduct>> _ordersCache = {};
+    static final Map<String, DateTime> _cacheTimestamps = {};
+    static const Duration _cacheDuration = Duration(minutes: 2);
+
+
     // Получение рабочих мест
     static Future<List<Workplace>> getWorkplaces() async 
     {
@@ -144,40 +149,55 @@ class DataService
     // Получение заказов для участка
     static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId) async
     {
+        final now = DateTime.now();
+        
+        // Проверяем кэш
+        if (_ordersCache.containsKey(workplaceId) && 
+            _cacheTimestamps.containsKey(workplaceId) &&
+            now.difference(_cacheTimestamps[workplaceId]!) < _cacheDuration) {
+            print('⚡ Используем кэшированные заказы для участка $workplaceId');
+            return _ordersCache[workplaceId]!;
+        }
+        
         try
         {
+            print('📥 Загрузка заказов для участка $workplaceId');
+            final stopwatch = Stopwatch()..start();
+            
             final response = await http.get(
                 Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
-                headers: {'Content-Type': 'application/json'},
-            ).timeout(_timeoutDuration);
-
-            print('✅ORders Ответ получен, статус: ${response.statusCode}');
-            print('📦 Длина ответа: ${response.body.length} символов');
-
+            ).timeout(const Duration(seconds: 15));
+            
             if (response.statusCode == 200)
             {
-                return _parseOrdersResponse(response.body);
+                final orders = await _parseOrdersResponseInBackground(response.body);
+                
+                stopwatch.stop();
+                print('✅ Заказы загружены за ${stopwatch.elapsedMilliseconds}ms');
+                
+                // Сохраняем в кэш
+                _ordersCache[workplaceId] = orders;
+                _cacheTimestamps[workplaceId] = now;
+                
+                return orders;
             }
             else
             {
                 throw Exception('HTTP ${response.statusCode}');
             }
         }
-        on TimeoutException catch (e)
-        {
-            print('⏰ Таймаут запроса: $e');
-            throw Exception('Таймаут запроса. Проверьте подключение к интернету');
-        }
-        on SocketException catch (e)
-        {
-            print('📡 Ошибка сети: $e');
-            throw Exception('Нет подключения к интернету');
-        }
         catch (e)
         {
-            print('❌ Ошибка в getOrdersByWorkplace: $e');
-            rethrow;
+            print('❌ Ошибка загрузки заказов: $e');
+            // Возвращаем кэш, если есть
+            return _ordersCache[workplaceId] ?? [];
         }
+    }
+
+    // Парсинг в фоне (если нужно)
+    static Future<List<OrderInProduct>> _parseOrdersResponseInBackground(String responseBody) async 
+    {
+        return compute(_parseOrdersResponse, responseBody);
     }
 
     static List<OrderInProduct> _parseOrdersResponse(String responseBody)

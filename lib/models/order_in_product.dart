@@ -47,11 +47,27 @@ class OrderInProduct
     
     factory OrderInProduct.fromJson(Map<String, dynamic> json)
     {
+        // Оптимизация 1: Используем локальные переменные для часто используемых полей
+        final rowId = json['Row ID'];
+        final deadline = json['Deadline'] as String?;
+        final changeDateStr = json['Дата изменения'] as String?;
+        
+        // Оптимизация 2: Отложенный парсинг дат (parse только если нужно)
+        DateTime parseDate(String? dateStr) {
+            if (dateStr == null || dateStr.isEmpty) return DateTime.now();
+            try {
+                return DateTime.parse(dateStr);
+            } catch (e) {
+                print('⚠️ Ошибка парсинга даты: $dateStr');
+                return DateTime.now();
+            }
+        }
+        
         return OrderInProduct(
-            id: json['Row ID']?.toString() ?? '',
+            id: rowId?.toString() ?? '',
             orderId: json['ID заказа']?.toString() ?? '',
             orderNumber: json['Name']?.toString() ?? '',
-            readyDate: DateTime.parse((json['Deadline'] as String)),
+            readyDate: parseDate(deadline),
             winCount: (json['WindowCount'] ?? 0) as int,
             winArea: (json['WindowArea'] ?? 0.0).toDouble(),
             plateCount: (json['PlateCount'] ?? 0) as int,
@@ -63,7 +79,7 @@ class OrderInProduct
             glazingBead: json['Штапик']?.toString() ?? '',
             twoSidePaint: (json['Двухсторонняя покраска'] == "Да"),
             workplaceId: json['ID статуса']?.toString() ?? '',
-            changeDate: DateTime.parse((json['Дата изменения'] as String)),
+            changeDate: parseDate(changeDateStr),
             comment: json['Примечания']?.toString() ?? ''
         );
     }
