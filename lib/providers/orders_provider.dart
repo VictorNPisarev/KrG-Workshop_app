@@ -180,61 +180,48 @@ class OrdersProvider extends ChangeNotifier
     }
     
     // Взять заказ в работу
-    Future<void> takeOrderToWork(OrderInProduct order) async
+    Future<void> takeOrderToWork(OrderInProduct order) async 
     {
         if (_currentWorkplace == null) return;
         
-        _isLoading = true;
+        // Сразу обновляем локально (оптимистичное обновление)
+        final updatedOrder = order.copyWith(
+            status: OrderStatus.inProgress,
+            changeDate: DateTime.now(),
+            workplaceId: _currentWorkplace!.id,
+        );
+        
+        _updateOrderInLists(updatedOrder);
         notifyListeners();
         
-        try
+        // Показываем немедленную обратную связь
+        _showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
+        
+        // Отправляем на сервер в фоне (без блокировки UI)
+        _sendUpdateToServerInBackground(order, OrderStatus.inProgress);
+    }
+    
+    // Фоновая отправка
+    Future<void> _sendUpdateToServerInBackground(OrderInProduct order, OrderStatus status) async 
+    {
+        try 
         {
-            print('🔄 Берем заказ в работу: ${order.orderNumber}');
-            
-            // Отправляем запрос на сервер
             final response = await DataService.updateOrderStatus(
                 orderId: order.id,
                 workplaceId: _currentWorkplace!.id,
-                status: OrderStatus.inProgress,
+                status: status,
                 comment: 'Взято в работу на участке ${_currentWorkplace!.name}',
             );
             
-            if (response['success'] == true)
+            if (response['success'] != true) 
             {
-                // Локально обновляем заказ
-                final updatedOrder = order.copyWith(
-                    status: OrderStatus.inProgress,
-                    changeDate: DateTime.now(),
-                    workplaceId: _currentWorkplace!.id,
-                );
-                
-                _updateOrderInLists(updatedOrder);
-                
-                print('✅ Заказ ${order.orderNumber} успешно взят в работу');
-                
-                // Показываем уведомление
-                if (_error == null) {
-                    _showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
-                }
+                print('⚠️ Фоновая синхронизация не удалась, но данные обновлены локально');
             }
-            else
-            {
-                _error = 'Не удалось обновить статус заказа на сервере: ${response['message']}';
-                print('❌ Ошибка сервера: ${response['message']}');
-            }
-        }
-        catch (e)
+        } 
+        catch (e) 
         {
-            _error = 'Ошибка сети: ${e.toString()}';
-            print('❌ Ошибка при взятии заказа в работу: $e');
-            
-            // При ошибке сети можно предложить повторить или работать в оффлайн-режиме
-            _showErrorNotification('Ошибка сети. Попробуйте позже.');
-        }
-        finally
-        {
-            _isLoading = false;
-            notifyListeners();
+            print('⚠️ Ошибка фоновой синхронизации: $e');
+            // Можно добавить в очередь для повторной отправки
         }
     }
 
