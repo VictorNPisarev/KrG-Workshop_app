@@ -176,9 +176,10 @@ class DataService {
   }
 
   // Параллельная загрузка заказов для нескольких участков
-  static Future<Map<String, List<OrderInProduct>>> getOrdersForMultipleWorkplaces(
-      List<String> workplaceIds) async {
-    try {
+  static Future<Map<String, List<OrderInProduct>>> getOrdersForMultipleWorkplaces(List<String> workplaceIds) async 
+  {
+    try 
+    {
       print('🚀 Параллельная загрузка заказов для ${workplaceIds.length} участков');
 
       final stopwatch = Stopwatch()..start();

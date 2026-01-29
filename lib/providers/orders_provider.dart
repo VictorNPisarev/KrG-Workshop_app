@@ -101,9 +101,20 @@ class OrdersProvider extends ChangeNotifier {
 
       // Обрабатываем текущие заказы
       final currentWorkplaceOrders = ordersMap[_currentWorkplace!.id] ?? [];
-      _currentOrders = currentWorkplaceOrders;
+      
+      _currentOrders = currentWorkplaceOrders; //По idWorkplace в orderInProduct
+            
+      // ФИЛЬТРАЦИЯ 1: Не показываем завершенные заказы на текущем участке
+      /*_currentOrders = currentWorkplaceOrders
+          .where((order) => order.operations.operationsCount == 0 || !order.operations.isCompleted)  // ← ТОЛЬКО НЕ ЗАВЕРШЕННЫЕ
+          .toList();*/
+
       _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
       print('✅ Текущих заказов: ${_currentOrders.length}');
+
+      // СОРТИРОВКА по readyDate (по возрастанию)
+      _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
+      print('✅ Текущих заказов (не завершены): ${_currentOrders.length} из ${currentWorkplaceOrders.length}');
 
       // Обрабатываем ожидающие заказы
       if (_currentWorkplace!.previousWorkplace != null) {
@@ -201,7 +212,7 @@ class OrdersProvider extends ChangeNotifier {
         workplaceId: _currentWorkplace!.id,
         userId: userId,
         status: status,
-        comment: 'Обновлено на участке ${_currentWorkplace!.name}',
+        comment: 'Завершен на участке ${_currentWorkplace!.name}',
       );
 
       if (response['success'] != true) {
