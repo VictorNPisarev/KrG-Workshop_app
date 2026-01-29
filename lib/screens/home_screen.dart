@@ -6,6 +6,7 @@ import '../models/workplace.dart';
 import '../providers/auth_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_table_widget.dart';
+import '../widgets/paginated_order_table.dart';
 import 'debug_screen.dart';
 import 'order_detail_screen.dart';
 
@@ -343,26 +344,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         );
     }
     
-Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color, bool isCurrentTab)
-{
-    return Padding(
+    Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color, bool isCurrentTab) {
+      // Создаем уникальный ключ для каждой вкладки
+      final String tabKey = '${isCurrentTab ? 'current' : 'pending'}_${orders.length}_${_previousWorkplaceId ?? ''}';
+      
+      return Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
-            children: [
-                _buildSummaryInfo(summary, color),
-                const SizedBox(height: 16),
-                Expanded(
-                    child: OrderTableWidget(
-                        orders: orders,
-                        onOrderSelected: _showOrderDetails,
-                        // Передаем информацию о текущей вкладке
-                        isCurrentTab: isCurrentTab,
+          children: [
+            _buildSummaryInfo(summary, color),
+            const SizedBox(height: 16),
+            Expanded(
+              child: orders.length > 20
+                  ? PaginatedOrderTable(
+                      key: ValueKey(tabKey), // Важно для сброса состояния
+                      orders: orders,
+                      onOrderSelected: _showOrderDetails,
+                      isCurrentTab: isCurrentTab,
+                      tabKey: tabKey,
+                    )
+                  : OrderTableWidget(
+                      orders: orders,
+                      onOrderSelected: _showOrderDetails,
+                      isCurrentTab: isCurrentTab,
                     ),
-                ),
-            ],
+            ),
+          ],
         ),
-    );
-}    
+      );
+    }
+
     Widget _buildSummaryInfo(String text, Color color)
     {
         return Container(

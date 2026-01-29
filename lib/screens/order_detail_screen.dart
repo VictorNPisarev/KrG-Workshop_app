@@ -51,6 +51,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         // Получаем актуальную версию заказа при каждом build
         final ordersProvider = context.watch<OrdersProvider>();
         final authProvider = context.watch<AuthProvider>();
+        final currentUser = authProvider.currentUser;  // ← ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 
         final currentOrder = ordersProvider.getOrderById(widget.orderId) ?? _currentOrder;
         
@@ -171,7 +172,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                                 backgroundColor: Colors.green,
                                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                             ),
-                                            onPressed: () => _takeToWork(context, currentOrder),
+                                            onPressed: () => _takeToWork(context, currentOrder, currentUser!.id),
                                         ),
                                     ),
                                 
@@ -189,7 +190,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                                                 backgroundColor: Colors.blue,
                                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                             ),
-                                            onPressed: () => _completeOrder(context, currentOrder),
+                                            onPressed: () => _completeOrder(context, currentOrder, currentUser!.id),
                                         ),
                                     ),
                             ],
@@ -226,7 +227,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
     }
     
-    void _takeToWork(BuildContext context, OrderInProduct order) 
+    void _takeToWork(BuildContext context, OrderInProduct order, String userId) 
     {
         final ordersProvider = context.read<OrdersProvider>();
         
@@ -239,7 +240,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         );
         
         // Оптимистичное обновление - сразу меняем статус
-        ordersProvider.takeOrderToWork(order);
+        ordersProvider.takeOrderToWork(order, userId);
         
         // Закрываем экран через 1 секунду
         Future.delayed(const Duration(seconds: 1), () 
@@ -251,7 +252,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         });
     }
 
-    void _completeOrder(BuildContext context, OrderInProduct order)
+    void _completeOrder(BuildContext context, OrderInProduct order, String userId)
     {
         final ordersProvider = context.read<OrdersProvider>();
         
@@ -270,7 +271,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     ElevatedButton(
                         onPressed: () {
                             Navigator.pop(context);
-                            ordersProvider.completeOrder(order);
+                            ordersProvider.completeOrder(order, userId);
                             
                             // Автоматически закрываем экран через 2 секунды
                             Future.delayed(const Duration(seconds: 2), () {
