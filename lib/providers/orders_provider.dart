@@ -5,6 +5,7 @@ import '../models/order_in_product.dart';
 import '../models/workplace.dart';
 import '../services/data_service.dart';
 import '../utils/network_utils.dart';
+import 'auth_provider.dart';
 
 class OrdersProvider extends ChangeNotifier {
   // Списки заказов
@@ -150,7 +151,7 @@ class OrdersProvider extends ChangeNotifier {
   }
 
   // Взять заказ в работу (оптимистичное обновление)
-  Future<void> takeOrderToWork(OrderInProduct order) async {
+  Future<void> takeOrderToWork(OrderInProduct order, String userId) async {
     if (_currentWorkplace == null) return;
 
     // Немедленно обновляем локально
@@ -167,11 +168,12 @@ class OrdersProvider extends ChangeNotifier {
     _showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
 
     // Отправляем на сервер в фоне
-    _sendUpdateToServer(order, OrderStatus.inProgress);
+    _sendUpdateToServer(order, OrderStatus.inProgress, userId);
   }
 
   // Завершить заказ (оптимистичное обновление)
-  Future<void> completeOrder(OrderInProduct order) async {
+  Future<void> completeOrder(OrderInProduct order, String userId) async 
+  {
     if (_currentWorkplace == null) return;
 
     // Немедленно обновляем локально
@@ -187,15 +189,17 @@ class OrdersProvider extends ChangeNotifier {
     _showSuccessNotification('Заказ ${order.orderNumber} завершен');
 
     // Отправляем на сервер в фоне
-    _sendUpdateToServer(order, OrderStatus.completed);
+    _sendUpdateToServer(order, OrderStatus.completed, userId);
   }
 
   // Фоновая отправка на сервер
-  Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status) async {
-    try {
+  Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status, String? userId) async {
+    try 
+    {  
       final response = await DataService.updateOrderStatus(
         orderId: order.id,
         workplaceId: _currentWorkplace!.id,
+        userId: userId,
         status: status,
         comment: 'Обновлено на участке ${_currentWorkplace!.name}',
       );

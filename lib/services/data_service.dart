@@ -289,6 +289,7 @@ class DataService {
   static Future<Map<String, dynamic>> updateOrderStatus({
     required String orderId,
     required String workplaceId,
+    required String? userId,
     required OrderStatus status,
     String comment = '',
   }) async {
@@ -301,16 +302,19 @@ class DataService {
       final client = http.Client();
       //client.maxRedirects = 5; // Разрешаем редиректы
 
+      final action = status == OrderStatus.completed ? 'completeOrderWorkplace' : 'updateOrderWorkplace';
+
       try {
         final response = await client
             .post(
               Uri.parse(_baseUrl),
               headers: {'Content-Type': 'application/json'},
               body: json.encode({
-                'action': 'updateOrderWorkplace',
+                'action': action,
                 'payload': {
                   'orderInProductId': orderId,
                   'workplaceId': workplaceId,
+                  'userId': userId,
                   'status': status.name,
                 },
               }),
@@ -335,4 +339,5 @@ class DataService {
       return {'success': true, 'message': 'Обновлено локально'};
     }
   }
+
 }
