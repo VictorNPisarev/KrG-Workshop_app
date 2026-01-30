@@ -14,7 +14,7 @@ class DataService {
   static final http.Client _client = http.Client();
 
   // Таймауты для мобильных устройств
-  static const Duration _timeoutDuration = Duration(seconds: 10);
+  static const Duration _timeoutDuration = Duration(seconds: 30);
 
   // Кэшированные данные
   static List<Workplace>? _cachedWorkplaces;

@@ -7,7 +7,8 @@ import '../services/data_service.dart';
 import '../utils/network_utils.dart';
 import 'auth_provider.dart';
 
-class OrdersProvider extends ChangeNotifier {
+class OrdersProvider extends ChangeNotifier 
+{
   // Списки заказов
   List<OrderInProduct> _currentOrders = [];
   List<OrderInProduct> _pendingOrders = [];
@@ -32,36 +33,57 @@ class OrdersProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   // Инициализация провайдера
-  Future<void> initialize(String workplaceId) async {
+  Future<void> initialize(String workplaceId, {Workplace? workplace, List<Workplace>? availableWorkplaces}) async 
+  {
     if (_isLoading) return;
 
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    try {
+    try 
+    {
       print('🔄 OrdersProvider.initialize: начало, workplaceId=$workplaceId');
 
       // Проверяем интернет
-      if (!await NetworkUtils.hasInternetConnection()) {
+      if (!await NetworkUtils.hasInternetConnection()) 
+      {
         throw Exception('Нет подключения к интернету');
       }
 
-      // Загружаем рабочие места
-      final workplaces = await DataService.getWorkplaces();
-      print('✅ Загружено рабочих мест: ${workplaces.length}');
+      if (workplace != null)
+      {
+          _currentWorkplace = workplace;
+          print('✅ Получил рабочее место из AuthAdapter: ${_currentWorkplace!.name}');
+      }
+      else if (availableWorkplaces != null && availableWorkplaces.isNotEmpty) 
+      {
+          // Используем переданный список
+          _currentWorkplace = availableWorkplaces.firstWhere(
+            (wp) => wp.id == workplaceId,
+            orElse: () => Workplace.fallback(),
+          );
+           print('✅ Получил рабочее место из availableWorkplaces: ${_currentWorkplace!.name}');
+       }
+      else
+      {
+          // Загружаем рабочие места
+          final workplaces = await DataService.getWorkplaces();
+          print('✅ Загружено рабочих мест: ${workplaces.length}');
 
-      // Находим нужное рабочее место
-      final workplace = workplaces.firstWhere(
-        (wp) => wp.id == workplaceId,
-        orElse: () {
-          print('⚠️ Workplace $workplaceId не найден, использую первый');
-          return workplaces.isNotEmpty ? workplaces.first : Workplace.fallback();
-        },
-      );
+          // Находим нужное рабочее место
+          final workplace = workplaces.firstWhere(
+            (wp) => wp.id == workplaceId,
+            orElse: () {
+              print('⚠️ Workplace $workplaceId не найден, использую первый');
+              return workplaces.isNotEmpty ? workplaces.first : Workplace.fallback();
+            },
+          );
 
       _currentWorkplace = workplace;
-      print('✅ Текущее рабочее место: ${workplace.name}');
+      }
+
+      print('✅ Текущее рабочее место: ${_currentWorkplace!.name}');
 
       // Загружаем заказы параллельно
       await _loadOrdersParallel();
@@ -293,11 +315,13 @@ class OrdersProvider extends ChangeNotifier {
   }
 
   // Метод для смены рабочего участка
-  Future<void> changeWorkplace(String workplaceId) async {
+  Future<void> changeWorkplace(String workplaceId) async 
+  {
     _isLoading = true;
     notifyListeners();
 
-    try {
+    try 
+    {
       // Останавливаем автообновление
       stopAutoRefresh();
 
