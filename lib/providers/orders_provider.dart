@@ -80,7 +80,7 @@ class OrdersProvider extends ChangeNotifier
             },
           );
 
-      _currentWorkplace = workplace;
+          _currentWorkplace = workplace;
       }
 
       print('✅ Текущее рабочее место: ${_currentWorkplace!.name}');
@@ -106,7 +106,8 @@ class OrdersProvider extends ChangeNotifier
   }
 
   // Параллельная загрузка заказов
-  Future<void> _loadOrdersParallel() async {
+  Future<void> _loadOrdersParallel() async 
+  {
     if (_currentWorkplace == null) return;
 
     try {
@@ -126,30 +127,37 @@ class OrdersProvider extends ChangeNotifier
       
       _currentOrders = currentWorkplaceOrders; //По idWorkplace в orderInProduct
             
-      // ФИЛЬТРАЦИЯ 1: Не показываем завершенные заказы на текущем участке
-      /*_currentOrders = currentWorkplaceOrders
-          .where((order) => order.operations.operationsCount == 0 || !order.operations.isCompleted)  // ← ТОЛЬКО НЕ ЗАВЕРШЕННЫЕ
-          .toList();*/
-
       _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
       print('✅ Текущих заказов: ${_currentOrders.length}');
+
+      // ФИЛЬТРАЦИЯ 1: Не показываем завершенные заказы на текущем участке
+      _currentOrders = _currentOrders
+          .where((order) => !order.operations.isCompleted)  // ← ТОЛЬКО НЕ ЗАВЕРШЕННЫЕ
+          .toList();
 
       // СОРТИРОВКА по readyDate (по возрастанию)
       _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
       print('✅ Текущих заказов (не завершены): ${_currentOrders.length} из ${currentWorkplaceOrders.length}');
 
       // Обрабатываем ожидающие заказы
-      if (_currentWorkplace!.previousWorkplace != null) {
-        final pendingWorkplaceOrders =
-            ordersMap[_currentWorkplace!.previousWorkplace!] ?? [];
+      if (_currentWorkplace!.previousWorkplace != null) 
+      {
+        final pendingWorkplaceOrders = ordersMap[_currentWorkplace!.previousWorkplace!] ?? [];
         _pendingOrders = pendingWorkplaceOrders;
         _pendingOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
+        // СОРТИРОВКА по readyDate (по возрастанию)
+        _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
+        
         print('✅ Ожидающих заказов: ${_pendingOrders.length}');
-      } else {
+      } 
+      else 
+      {
         _pendingOrders = [];
         print('ℹ️ Нет предыдущего рабочего места, ожидающие заказы не загружаются');
       }
-    } catch (e) {
+    } 
+    catch (e) 
+    {
       _error = 'Ошибка загрузки заказов: ${e.toString()}';
       print('❌ Ошибка при загрузке заказов: $e');
       rethrow;
@@ -226,7 +234,8 @@ class OrdersProvider extends ChangeNotifier
   }
 
   // Фоновая отправка на сервер
-  Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status, String? userId) async {
+  Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status, String? userId) async 
+  {
     try 
     {  
       final response = await DataService.updateOrderStatus(

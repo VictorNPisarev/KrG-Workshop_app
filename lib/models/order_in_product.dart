@@ -188,6 +188,11 @@ class OrderInProduct
 
     void setStatusByWorkplace(String workplaceId) 
     {
+      if(operations.operationsCount == 0)
+      {
+        status = isInWorkplace(workplaceId) ? OrderStatus.inProgress : OrderStatus.pending;
+        return;
+      }
       // Теперь используем данные из operations для определения статуса
       if (operations.isCompleted) 
       {

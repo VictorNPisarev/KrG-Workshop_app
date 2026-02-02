@@ -107,16 +107,17 @@ class DataService {
   }
 
   // Получение заказов для участка
-  static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId) async {
+  static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId) async 
+  {
     final now = DateTime.now();
 
     // Проверяем кэш
-    if (_ordersCache.containsKey(workplaceId) &&
+    /*if (_ordersCache.containsKey(workplaceId) &&
         _cacheTimestamps.containsKey(workplaceId) &&
         now.difference(_cacheTimestamps[workplaceId]!) < _cacheDuration) {
       print('📦 Используем кэшированные заказы для участка $workplaceId');
       return _ordersCache[workplaceId]!;
-    }
+    }*/
 
     try {
       print('📥 Загрузка заказов для участка $workplaceId');
@@ -186,7 +187,8 @@ class DataService {
 
       // Создаем список Future для каждого участка
       final List<Future<List<OrderInProduct>>> futures = [];
-      for (final workplaceId in workplaceIds) {
+      for (final workplaceId in workplaceIds) 
+      {
         futures.add(getOrdersForWorkplace(workplaceId));
       }
 
@@ -198,6 +200,8 @@ class DataService {
       for (int i = 0; i < workplaceIds.length; i++) {
         resultMap[workplaceIds[i]] = results[i];
       }
+
+      print('✅ Всего заказов загружено ${resultMap.length}');
 
       stopwatch.stop();
       print('✅ Параллельная загрузка завершена за ${stopwatch.elapsedMilliseconds}ms');
