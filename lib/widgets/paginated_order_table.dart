@@ -30,13 +30,15 @@ class _PaginatedOrderTableState extends State<PaginatedOrderTable>
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
+  void initState() 
+  {
     super.initState();
     _previousTabKey = widget.tabKey;
   }
 
   @override
-  void didUpdateWidget(PaginatedOrderTable oldWidget) {
+  void didUpdateWidget(PaginatedOrderTable oldWidget) 
+  {
     super.didUpdateWidget(oldWidget);
 
     // Сбрасываем страницу если:
@@ -53,7 +55,8 @@ class _PaginatedOrderTableState extends State<PaginatedOrderTable>
     }
   }
 
-  List<OrderInProduct> get _currentPageOrders {
+  List<OrderInProduct> get _currentPageOrders 
+  {
     if (widget.orders.isEmpty) return [];
 
     final start = _currentPage * _pageSize;
@@ -68,7 +71,8 @@ class _PaginatedOrderTableState extends State<PaginatedOrderTable>
     );
   }
 
-  int get _totalPages {
+  int get _totalPages 
+  {
     if (widget.orders.isEmpty) return 1;
     return (widget.orders.length / _pageSize).ceil();
   }

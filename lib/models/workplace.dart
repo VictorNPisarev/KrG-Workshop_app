@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 class Workplace
@@ -8,6 +9,7 @@ class Workplace
 
     String? previousWorkplace;
     String? nextWorkPlace;
+    IconData workplaceIcon;
     
     Workplace({
         required this.id,
@@ -15,6 +17,7 @@ class Workplace
         required this.previousWorkplace,
         required this.nextWorkPlace,
         required this.isWorkPlace,
+        this.workplaceIcon = Icons.work,
     });
     
         // Фабричный конструктор для создания нового заказа
@@ -55,6 +58,21 @@ class Workplace
             final isWorkplaceStr = json['Участок производства'];
             print('   Участок производства: $isWorkplaceStr (тип: ${isWorkplaceStr.runtimeType})');
             
+            // Map для иконок
+            final Map<String, IconData> workplaceIconsMapping = 
+            {
+              'Торцовка': Icons.carpenter,
+              'Профилирование': Icons.border_inner,
+              'Сборка': Icons.build,
+              'Шлифовка': Icons.how_to_vote,
+              'Покраска': Icons.brush,
+              'Фурнитура': Icons.lock_open,
+              'Остекление': Icons.aspect_ratio,
+              'Упаковка': Icons.inventory_2,
+            };
+
+            final icon = workplaceIconsMapping[status] ?? Icons.work_outline;
+            
             // Валидация
             if (rowId == null)
             {
@@ -72,6 +90,7 @@ class Workplace
                 previousWorkplace: previous?.toString(),
                 nextWorkPlace: null, // Пока нет в данных
                 isWorkPlace: (isWorkplaceStr?.toString() ?? 'Нет').toLowerCase() == 'да',
+                workplaceIcon: icon
             );
         }
         catch (e)

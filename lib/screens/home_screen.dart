@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             {
                 WidgetsBinding.instance.addPostFrameCallback((_)
                 {
-                    ordersProvider.initialize(workplace.id);
+                    ordersProvider.initialize(workplace.id, workplace: authProvider.currentWorkplace);
                 });
             }
         }
@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final workplace = authProvider.currentWorkplace;
         if (workplace != null)
         {
-            ordersProvider.initialize(workplace.id);
+            ordersProvider.initialize(workplace.id, workplace: authProvider.currentWorkplace);
         }
     }
     
@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             // Инициализируем в следующем кадре
             WidgetsBinding.instance.addPostFrameCallback((_)
             {
-                ordersProvider.initialize(workplace.id);
+                ordersProvider.initialize(workplace.id, workplace: authProvider.currentWorkplace);
             });
             
             return const Scaffold(
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     controller: _tabController,
                     tabs: const [
                         Tab(
-                            icon: Icon(Icons.build),
+                            icon: Icon(Icons.list_alt),
                             text: 'Текущие заказы',
                         ),
                         Tab(
@@ -444,6 +444,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         
         // 4. Очищаем и загружаем заказы для нового рабочего места
         ordersProvider.clearData();
-        await ordersProvider.initialize(workplace.id);
+        await ordersProvider.initialize(workplace.id, availableWorkplaces: authProvider.availableWorkplaces);
     }
 }

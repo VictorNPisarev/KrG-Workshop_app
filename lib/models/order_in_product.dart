@@ -24,6 +24,9 @@ class OrderInProduct
     OrderStatus status;
     String comment;
     
+    // НОВОЕ ПОЛЕ: операции по заказу
+    OrderOperations operations;
+
     OrderInProduct({
         required this.id,
         required this.orderId,
@@ -42,11 +45,42 @@ class OrderInProduct
         required this.workplaceId,
         required this.changeDate,
         required this.comment,
+        required this.operations,
         this.status = OrderStatus.pending,
     });
     
     factory OrderInProduct.fromJson(Map<String, dynamic> json)
     {
+        // Парсим операции
+        final operationsJson = json['operations'] ?? {};
+        final orderOperations = OrderOperations.fromJson(
+          operationsJson is Map<String, dynamic> 
+            ? operationsJson 
+            : {}
+        );
+        
+        // Определяем статус на основе операций
+        OrderStatus determineStatus(Map<String, dynamic> json, OrderOperations ops) 
+        {
+          // Если заказ завершен по операциям
+          if (ops.isCompleted) 
+          {
+            return OrderStatus.completed;
+          }
+          // Если заказ начат по операциям
+          else if (ops.isStarted) 
+          {
+            return OrderStatus.inProgress;
+          }
+          // Иначе ожидает
+          else 
+          {
+            return OrderStatus.pending;
+          }
+        }
+        
+        final status = determineStatus(json, orderOperations);
+
         // Оптимизация 1: Используем локальные переменные для часто используемых полей
         final rowId = json['Row ID'];
         final deadline = json['Deadline'] as String?;
@@ -80,7 +114,10 @@ class OrderInProduct
             twoSidePaint: (json['Двухсторонняя покраска'] == "Да"),
             workplaceId: json['ID статуса']?.toString() ?? '',
             changeDate: parseDate(changeDateStr),
-            comment: json['Примечания']?.toString() ?? ''
+            comment: json['Примечания']?.toString() ?? '',
+            operations: orderOperations,
+            status: status,
+
         );
     }
     
@@ -111,6 +148,7 @@ class OrderInProduct
         String? workplaceId,
         DateTime? changeDate,
         String? comment,
+        OrderOperations? operations,
         OrderStatus? status,
     })
     {
@@ -132,6 +170,7 @@ class OrderInProduct
             workplaceId: workplaceId ?? this.workplaceId,
             changeDate: changeDate ?? this.changeDate,
             comment: comment ?? this.comment,
+            operations: operations ?? this.operations,
             status: status ?? this.status,
         );
     }
@@ -142,10 +181,60 @@ class OrderInProduct
         return this.workplaceId == workplaceId;
     }
 
-    void setStatusByWorkplace (String workplaceId)
+    /*void setStatusByWorkplace (String workplaceId)
     {
         status = isInWorkplace(workplaceId) ? OrderStatus.inProgress : OrderStatus.pending;
+    }*/
+
+    void setStatusByWorkplace(String workplaceId) 
+    {
+      //Поддержка старых заказов, для которых нет записей в таблице движения заказа
+      if(operations.operationsCount == 0)
+      {
+        status = isInWorkplace(workplaceId) ? OrderStatus.inProgress : OrderStatus.pending;
+        return;
+      }
+
+      // Для заказов на предыдущем участке все гда вывожу статус "Ожидание"
+      if (!isInWorkplace(workplaceId))
+      {
+        status = OrderStatus.pending;
+        return;
+      }
+
+      // Теперь используем данные из operations для определения статуса
+      if (operations.isCompleted) 
+      {
+        status = OrderStatus.completed;
+      } 
+      else if (isInWorkplace(workplaceId) && operations.isStarted) 
+      {
+        status = OrderStatus.inProgress;
+      } 
+      else 
+      {
+        status = OrderStatus.pending;
+      }
     }
+    
+    // НОВЫЙ МЕТОД: проверка, можно ли взять заказ в работу
+    bool get canBeTakenToWork 
+    {
+      // Заказ можно взять в работу если:
+      // 1. Он не завершен
+      // 2. Он еще не начат (или начат, но не на текущем участке)
+      return !operations.isCompleted;
+    }
+    
+    // НОВЫЙ МЕТОД: проверка, можно ли завершить заказ
+    bool get canBeCompleted 
+    {
+      // Заказ можно завершить если:
+      // 1. Он начат
+      // 2. Он не завершен
+      return operations.isStarted && !operations.isCompleted;
+    }
+
 }
 
 // Перечисление статусов заказа
@@ -158,4 +247,48 @@ enum OrderStatus
     final String displayName;
     
     const OrderStatus(this.displayName);
+}
+
+// ДОБАВИМ НОВЫЙ КЛАСС ДЛЯ ОПЕРАЦИЙ
+class OrderOperations 
+{
+  final bool isStarted;
+  final bool isCompleted;
+  final DateTime? startDateTime;
+  final DateTime? completeDateTime;
+  final int operationsCount;
+  
+  OrderOperations({
+    required this.isStarted,
+    required this.isCompleted,
+    this.startDateTime,
+    this.completeDateTime,
+    required this.operationsCount,
+  });
+  
+  factory OrderOperations.fromJson(Map<String, dynamic> json) 
+  {
+    return OrderOperations(
+      isStarted: json['isStarted'] ?? false,
+      isCompleted: json['isCompleted'] ?? false,
+      startDateTime: json['startDateTime'] != null 
+          ? DateTime.parse(json['startDateTime']) 
+          : null,
+      completeDateTime: json['completeDateTime'] != null 
+          ? DateTime.parse(json['completeDateTime']) 
+          : null,
+      operationsCount: json['operationsCount'] ?? 0,
+    );
+  }
+  
+  Map<String, dynamic> toJson() 
+  {
+    return {
+      'isStarted': isStarted,
+      'isCompleted': isCompleted,
+      'startDateTime': startDateTime?.toIso8601String(),
+      'completeDateTime': completeDateTime?.toIso8601String(),
+      'operationsCount': operationsCount,
+    };
+  }
 }
