@@ -115,7 +115,8 @@ class OrdersProvider extends ChangeNotifier
 
       // Собираем ID всех нужных участков
       final List<String> workplaceIds = [_currentWorkplace!.id];
-      if (_currentWorkplace!.previousWorkplace != null) {
+      if (_currentWorkplace!.previousWorkplace != null) 
+      {
         workplaceIds.add(_currentWorkplace!.previousWorkplace!);
       }
 
@@ -146,7 +147,7 @@ class OrdersProvider extends ChangeNotifier
         _pendingOrders = pendingWorkplaceOrders;
         _pendingOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
         // СОРТИРОВКА по readyDate (по возрастанию)
-        _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
+        _pendingOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
         
         print('✅ Ожидающих заказов: ${_pendingOrders.length}');
       } 

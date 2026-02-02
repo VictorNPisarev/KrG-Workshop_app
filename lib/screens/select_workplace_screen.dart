@@ -70,16 +70,16 @@ class SelectWorkplaceScreen extends StatelessWidget
                                     ),
                                     child: ListTile(
                                         leading: Icon(
-                                            Icons.work,
+                                            workplace.workplaceIcon,//Icons.work,
                                             color: Colors.blue.shade700,
                                         ),
                                         title: Text(
                                             workplace.name,
                                             style: const TextStyle(fontSize: 16),
                                         ),
-                                        subtitle: workplace.previousWorkplace != null
+                                        /*subtitle: workplace.previousWorkplace != null
                                             ? Text('Следующий после: ${workplace.previousWorkplace}')
-                                            : const Text('Первый в цепочке'),
+                                            : const Text('Первый в цепочке'),*/
                                         trailing: const Icon(Icons.arrow_forward),
                                         onTap: () => _selectWorkplace(context, workplace),
                                     ),

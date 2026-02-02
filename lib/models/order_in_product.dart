@@ -188,11 +188,20 @@ class OrderInProduct
 
     void setStatusByWorkplace(String workplaceId) 
     {
+      //Поддержка старых заказов, для которых нет записей в таблице движения заказа
       if(operations.operationsCount == 0)
       {
         status = isInWorkplace(workplaceId) ? OrderStatus.inProgress : OrderStatus.pending;
         return;
       }
+
+      // Для заказов на предыдущем участке все гда вывожу статус "Ожидание"
+      if (!isInWorkplace(workplaceId))
+      {
+        status = OrderStatus.pending;
+        return;
+      }
+
       // Теперь используем данные из operations для определения статуса
       if (operations.isCompleted) 
       {
