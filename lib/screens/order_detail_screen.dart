@@ -268,14 +268,60 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                         onPressed: () => Navigator.pop(context),
                         child: const Text('Отмена'),
                     ),
-                    ElevatedButton(
-                        onPressed: () {
+                    /*ElevatedButton(
+                        onPressed: () 
+                        {
                             Navigator.pop(context);
                             ordersProvider.completeOrder(order, userId);
                             
                             // Автоматически закрываем экран через 2 секунды
                             Future.delayed(const Duration(seconds: 2), () {
-                                if (context.mounted) {
+                                if (context.mounted) 
+                                {
+                                    Navigator.pop(context);
+                                }
+                            });
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                        ),
+                        child: const Text('Завершить'),
+                    ),*/
+                    ElevatedButton(
+                        onPressed: () async
+                        {
+                            // Закрываем диалог
+                            Navigator.pop(context);
+                            
+                            // Показываем уведомление
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Заказ ${order.orderNumber} завершается...'),
+                                    duration: const Duration(seconds: 2),
+                                ),
+                            );
+                            
+                            // Оптимистичное обновление
+                            // Создаем локально обновленный заказ
+                            final updatedOrder = order.copyWith(
+                                status: OrderStatus.completed,
+                                changeDate: DateTime.now(),
+                            );
+                            
+                            // Сразу обновляем UI
+                            if (mounted) {
+                                setState(() {
+                                    _currentOrder = updatedOrder;
+                                });
+                            }
+                            
+                            // Отправляем в провайдер
+                            ordersProvider.completeOrder(order, userId);
+                            
+                            // Закрываем экран через 2 секунды
+                            Future.delayed(const Duration(seconds: 2), () {
+                                if (context.mounted) 
+                                {
                                     Navigator.pop(context);
                                 }
                             });

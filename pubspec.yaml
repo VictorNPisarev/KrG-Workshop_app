@@ -60,6 +60,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
+  flutter_launcher_icons: ^0.13.1
+  
+  rename: ^2.0.1
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -101,3 +105,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/Logo.jpg"  # путь к вашей иконке
+  # Для адаптивных иконок Android (API 26+):
+  # adaptive_icon_background: "assets/icons/background.png"
+  # adaptive_icon_foreground: "assets/icons/foreground.png"
