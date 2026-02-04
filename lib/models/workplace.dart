@@ -24,8 +24,8 @@ class Workplace
     factory Workplace.create({
         required String name,
         bool isWorkPlace = true,
-        String? previousWorkPlace = null,
-        String? nextWorkPlace = null
+        String? previousWorkPlace,
+        String? nextWorkPlace
     })
     {
         final id = Uuid().v4(); // Генерация UUID

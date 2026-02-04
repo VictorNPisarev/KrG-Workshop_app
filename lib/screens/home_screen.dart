@@ -229,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     : null,
                                 onTap: () => _switchWorkplace(workplace),
                             );
-                        }).toList(),
+                        }),
                         
                         const Divider(),
                     ],

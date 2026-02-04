@@ -77,7 +77,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             currentOrder.workplaceId == ordersProvider.currentWorkplace?.id;
     
 
-        return Scaffold(
+        return WillPopScope(
+    onWillPop: () async {
+      // При возврате на предыдущий экран гарантируем обновление
+      final ordersProvider = context.read<OrdersProvider>();
+      ordersProvider.sortOrders();
+      return true;
+    },
+    child:  Scaffold(
             appBar: AppBar(
                 title: Row(
                     children: [
@@ -224,6 +231,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     ),
                 ],
             ),
+        )
         );
     }
     
