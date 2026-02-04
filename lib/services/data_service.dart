@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_in_product.dart';
 import '../models/user.dart';
-import '../models/user_workplace.dart';
 import '../models/workplace.dart';
 
 class DataService {
@@ -107,7 +106,7 @@ class DataService {
   }
 
   // Получение заказов для участка
-  static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId) async 
+  static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId, [byLogs = false]) async 
   {
     final now = DateTime.now();
 
@@ -122,9 +121,12 @@ class DataService {
     try {
       print('📥 Загрузка заказов для участка $workplaceId');
 
+      final action = byLogs ? 'getOrdersByWorkplaceLogs' : 'getOrdersByWorkplace';
+
       final response = await http
           .get(
-            Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
+            //Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
+            Uri.parse('$_baseUrl?action=$action&workplaceId=$workplaceId'),
           )
           .timeout(_timeoutDuration);
 

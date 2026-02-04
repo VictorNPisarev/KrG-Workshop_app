@@ -1,4 +1,3 @@
-import 'package:intl/intl.dart';
 class OrderInProduct
 {
     final String id;
@@ -195,19 +194,12 @@ class OrderInProduct
         return;
       }
 
-      // Для заказов на предыдущем участке все гда вывожу статус "Ожидание"
-      if (!isInWorkplace(workplaceId))
-      {
-        status = OrderStatus.pending;
-        return;
-      }
-
       // Теперь используем данные из operations для определения статуса
       if (operations.isCompleted) 
       {
         status = OrderStatus.completed;
       } 
-      else if (isInWorkplace(workplaceId) && operations.isStarted) 
+      else if (operations.isStarted) 
       {
         status = OrderStatus.inProgress;
       } 
