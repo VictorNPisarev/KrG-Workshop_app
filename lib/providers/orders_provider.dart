@@ -276,23 +276,26 @@ class OrdersProvider extends ChangeNotifier
   }
 
   // Обновление заказов в списках
-  void _updateOrderInLists(OrderInProduct updatedOrder) {
+  void _updateOrderInLists(OrderInProduct updatedOrder) 
+  {
     // Удаляем из обоих списков
     _currentOrders.removeWhere((order) => order.id == updatedOrder.id);
     _pendingOrders.removeWhere((order) => order.id == updatedOrder.id);
 
     // Добавляем в нужный список
     if (updatedOrder.status == OrderStatus.inProgress &&
-        updatedOrder.workplaceId == _currentWorkplace?.id) {
+        updatedOrder.workplaceId == _currentWorkplace?.id) 
+    {
       _currentOrders.add(updatedOrder);
-    } else if (updatedOrder.status == OrderStatus.pending &&
-        updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace) {
+    } 
+    else if (updatedOrder.status == OrderStatus.pending &&
+        updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace) 
+    {
       _pendingOrders.add(updatedOrder);
     }
 
-    // Сортируем по дате изменения
-    _currentOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
-    _pendingOrders.sort((a, b) => b.changeDate.compareTo(a.changeDate));
+    // Сортируем
+    sortOrders();
 
     notifyListeners();
   }
@@ -381,12 +384,17 @@ class OrdersProvider extends ChangeNotifier
     _isLoading = true;
     notifyListeners();
 
-    try {
+    try 
+    {
       await _loadOrdersParallel();
       _error = null;
-    } catch (e) {
+    } 
+    catch (e) 
+    {
       _error = 'Ошибка обновления: ${e.toString()}';
-    } finally {
+    } 
+    finally 
+    {
       _isLoading = false;
       notifyListeners();
     }
