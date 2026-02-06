@@ -1,0 +1,14 @@
+{
+  "version": "1.0.1",
+  "version_code": 2,
+  "minimum_version_code": 1,
+  "download_url": "https://github.com/ВАШ_USERNAME/ВАШ_REPO/releases/download/v1.0.1/app-release.apk",
+  "file_name": "workshop-app-v1.0.1.apk",
+  "force_update": false,
+  "release_notes": [
+    "Исправлены ошибки сортировки",
+    "Добавлена проверка обновлений"
+  ],
+  "file_size": 15728640,
+  "checksum": "md5_hash_here"
+}
