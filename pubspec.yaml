@@ -49,6 +49,14 @@ dependencies:
   google_sign_in: ^6.1.4  # для Android
   #apple_sign_in: ^1.0.0  # для iOS (если нужно)
 
+  #для проверки обновлений (новой версии), скачивания на устройство и запуска обновления
+  crypto: ^3.0.7
+  dio: ^5.9.1
+  package_info_plus: ^9.0.0
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.1
+  open_file: ^3.5.11
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

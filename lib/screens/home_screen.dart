@@ -1,6 +1,7 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:workshop_app/services/github_update_manager.dart';
 import '../models/order_in_product.dart';
 import '../models/workplace.dart';
 import '../providers/auth_provider.dart';
@@ -129,11 +130,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                 ),
                 actions: [
-                    IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () => _refreshData(),
-                        tooltip: 'Обновить',
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _refreshData(),
+                    tooltip: 'Обновить заказы',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.update),
+                    onPressed: () => _checkForUpdates(),
+                    tooltip: 'Проверить обновления',
+                  ),
                 ],
             ),
             drawer: _buildDrawer(),
@@ -445,5 +451,43 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         // 4. Очищаем и загружаем заказы для нового рабочего места
         ordersProvider.clearData();
         await ordersProvider.initialize(workplace.id, availableWorkplaces: authProvider.availableWorkplaces);
+    }
+
+    void _checkForUpdates() async 
+    {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Проверяем обновления...'),
+              duration: Duration(seconds: 2),
+            ),
+        );
+        
+        try 
+        {
+            final update = await GitHubUpdateManager.checkForUpdates();
+            
+            if (update != null) 
+            {
+                await GitHubUpdateManager.showUpdateDialog(context, update);
+            } 
+            else 
+            {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('У вас последняя версия'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+            }
+        } 
+        catch (e) 
+        {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Ошибка: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+        }
     }
 }
