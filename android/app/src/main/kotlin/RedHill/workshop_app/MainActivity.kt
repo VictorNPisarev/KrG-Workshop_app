@@ -27,6 +27,11 @@ class MainActivity: FlutterActivity() {
                     val hasEmail = hasDeviceEmail()
                     result.success(hasEmail)
                 }
+                "getUriForFile" -> {
+                    val filePath = call.arguments as String
+                    val uri = getUriForFile(filePath)
+                    result.success(uri)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -53,5 +58,14 @@ class MainActivity: FlutterActivity() {
     
     private fun hasDeviceEmail(): Boolean {
         return getDeviceEmail() != null
+    }
+
+    private fun getUriForFile(filePath: String): String {
+    val file = File(filePath)
+    return androidx.core.content.FileProvider.getUriForFile(
+        this,
+        "${BuildConfig.APPLICATION_ID}.fileprovider",
+        file
+    ).toString()
     }
 }
