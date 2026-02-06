@@ -2,6 +2,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workshop_app/services/github_update_manager.dart';
 import 'providers/auth_provider.dart';
 import 'providers/orders_provider.dart';
@@ -68,14 +69,30 @@ class _AppNavigatorState extends State<AppNavigator>
           branch: 'main',
         );
         
-        // Проверяем обновления через 5 секунд после запуска
-        _checkForUpdates();
+        // Проверяем обновления через 3 секунды после запуска
+        // (чтобы не мешать основной загрузке)
+        Future.delayed(const Duration(seconds: 3), () 
+        {
+          _checkForUpdates();
+        });
     }
     
     Future<void> _checkForUpdates() async 
     {
-        await Future.delayed(const Duration(seconds: 5));
+        // Проверяем обновления только раз в день
+        final prefs = await SharedPreferences.getInstance();
+        final lastUpdateCheck = prefs.getInt('last_update_check') ?? 0;
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final oneDayInMs = 24 * 60 * 60 * 1000;
         
+        // Если с последней проверки прошло меньше дня - пропускаем
+        if (now - lastUpdateCheck < oneDayInMs) {
+            print('⏰ Проверка обновлений не требуется (прошло менее суток)');
+            setState(() => _updateChecked = true);
+            return;
+        }
+        
+        print('🔄 Проверка обновлений...');
         try 
         {
             final update = await GitHubUpdateManager.checkForUpdates();
@@ -90,6 +107,9 @@ class _AppNavigatorState extends State<AppNavigator>
                     await GitHubUpdateManager.showUpdateDialog(context, update);
                 }
             }
+
+            // Сохраняем время последней проверки
+            await prefs.setInt('last_update_check', now);
         } 
         catch (e) 
         {

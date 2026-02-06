@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget
@@ -14,6 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
 {
     bool _initialized = false;
     String? _error;
+    String _appVersion = '';
     
     @override
     void didChangeDependencies()
@@ -33,6 +35,11 @@ class _SplashScreenState extends State<SplashScreen>
         {
             print('🔄 SplashScreen: начата инициализация приложения');
             
+            // Получаем информацию о версии приложения
+            final packageInfo = await PackageInfo.fromPlatform();
+            _appVersion = 'v${packageInfo.version} (build ${packageInfo.buildNumber})';
+            print('📱 Версия приложения: $_appVersion');
+
             final authProvider = Provider.of<AuthProvider>(context, listen: false);
             await authProvider.initialize();
             
@@ -98,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 10),
                         Text(
-                            'Версия 1.0.0',
+                            _appVersion.isNotEmpty ? _appVersion : 'Загрузка версии...',
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.grey,
                             ),
