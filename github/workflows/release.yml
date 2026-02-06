@@ -1,0 +1,62 @@
+
+name: Release APK with Auto Patch
+on:
+  push:
+    tags:
+      - 'v*'  # Запуск при создании тега v1.2.3
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Нужно для получения всех тегов
+      
+      - name: Get current version from tag
+        id: get_version
+        run: |
+          # Извлекаем версию из тега (v1.2.3 → 1.2.3)
+          TAG_NAME=${GITHUB_REF#refs/tags/v}
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          # Разбираем на компоненты
+          MAJOR=$(echo $TAG_NAME | cut -d. -f1)
+          MINOR=$(echo $TAG_NAME | cut -d. -f2)
+          PATCH=$(echo $TAG_NAME | cut -d. -f3)
+          
+          # Считаем количество релизов с этим MAJOR.MINOR
+          # (чтобы автоматически увеличивать PATCH)
+          ALL_TAGS=$(git tag -l "v$MAJOR.$MINOR.*")
+          PATCH_COUNT=$(echo "$ALL_TAGS" | wc -l)
+          
+          # Новая версия = MAJOR.MINOR.(PATCH_COUNT+1)
+          NEW_PATCH=$((PATCH_COUNT))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "OLD_VERSION=$TAG_NAME" >> $GITHUB_OUTPUT
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+      
+      - name: Update pubspec.yaml
+        run: |
+          # Генерируем build number из номера коммита
+          BUILD_NUMBER=${GITHUB_RUN_NUMBER}
+          
+          # Обновляем pubspec.yaml
+          sed -i "s/version: .*/version: ${{ steps.get_version.outputs.NEW_VERSION }}+$BUILD_NUMBER/" pubspec.yaml
+          echo "✅ Обновлена версия: ${{ steps.get_version.outputs.NEW_VERSION }}+$BUILD_NUMBER"
+      
+      - name: Build APK
+        run: |
+          flutter build apk --release
+      
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          tag_name: v${{ steps.get_version.outputs.NEW_VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

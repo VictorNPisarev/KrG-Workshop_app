@@ -8,6 +8,7 @@ import android.content.Context
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "RedHill.workshop_app/device_email"
@@ -64,7 +65,7 @@ class MainActivity: FlutterActivity() {
     val file = File(filePath)
     return androidx.core.content.FileProvider.getUriForFile(
         this,
-        "${BuildConfig.APPLICATION_ID}.fileprovider",
+        "${applicationContext.packageName}.fileprovider",
         file
     ).toString()
     }
