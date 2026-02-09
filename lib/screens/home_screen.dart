@@ -135,11 +135,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     onPressed: () => _refreshData(),
                     tooltip: 'Обновить заказы',
                   ),
-                  /*IconButton(
+                  IconButton(
                     icon: const Icon(Icons.update),
                     onPressed: () => _checkForUpdates(),
                     tooltip: 'Проверить обновления',
-                  ),*/
+                  ),
                 ],
             ),
             drawer: _buildDrawer(),

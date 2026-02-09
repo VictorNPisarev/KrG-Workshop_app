@@ -18,11 +18,6 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 
 version: 1.0.0+1
-# Р”Р»СЏ РїРµСЂРµС…РѕРґР° СЃ 1.0.x РЅР° 1.1.x:
-#version: 1.1.0+1  # в†ђ РёР·РјРµРЅРёС‚Рµ MINOR РІСЂСѓС‡РЅСѓСЋ
-
-# Р”Р»СЏ РїРµСЂРµС…РѕРґР° СЃ 1.x.x РЅР° 2.0.x:
-#version: 2.0.0+1  # в†ђ РёР·РјРµРЅРёС‚Рµ MAJOR РІСЂСѓС‡РЅСѓСЋ
 
 environment:
   sdk: ^3.10.1
@@ -127,4 +122,5 @@ flutter_launcher_icons:
   # Р”Р»СЏ Р°РґР°РїС‚РёРІРЅС‹С… РёРєРѕРЅРѕРє Android (API 26+):
   # adaptive_icon_background: "assets/icons/background.png"
   # adaptive_icon_foreground: "assets/icons/foreground.png"
+
 
