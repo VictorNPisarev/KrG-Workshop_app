@@ -1,6 +1,6 @@
 ﻿# Скрипт для создания релиза на GitHub
 param(
-    [string]$Version = "1.0.2",
+    [string]$Version = "1.1.6",
     [int]$VersionCode = 2,
     [string]$RepoOwner = "VictorNPisarev",
     [string]$RepoName = "KrG-Workshop_app"
