@@ -15,7 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
 {
     bool _initialized = false;
     String? _error;
-    String _appVersion = '';
+    String _appVersion = 'Загрузка...';
     
     @override
     void didChangeDependencies()
@@ -37,7 +37,14 @@ class _SplashScreenState extends State<SplashScreen>
             
             // Получаем информацию о версии приложения
             final packageInfo = await PackageInfo.fromPlatform();
-            _appVersion = 'v${packageInfo.version} (build ${packageInfo.buildNumber})';
+
+            if (mounted) 
+            {
+                setState(() {
+                  _appVersion = 'v${packageInfo.version} (build ${packageInfo.buildNumber})';
+                });
+            }
+
             print('📱 Версия приложения: $_appVersion');
 
             final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -105,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                         const SizedBox(height: 10),
                         Text(
-                            _appVersion.isNotEmpty ? _appVersion : 'Загрузка версии...',
+                            _appVersion,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.grey,
                             ),

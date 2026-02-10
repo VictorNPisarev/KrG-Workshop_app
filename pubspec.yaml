@@ -1,4 +1,4 @@
-name: workshop_app
+﻿name: workshop_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -16,13 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-
-version: 1.0.0+1
-# Для перехода с 1.0.x на 1.1.x:
-#version: 1.1.0+1  # ← измените MINOR вручную
-
-# Для перехода с 1.x.x на 2.0.x:
-#version: 2.0.0+1  # ← измените MAJOR вручную
+version: 1.2.10+10
 
 environment:
   sdk: ^3.10.1
@@ -49,13 +43,13 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.2
 
-  #для сохранения сессии (например, email для последующего автоматического входа)
+  #РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ СЃРµСЃСЃРёРё (РЅР°РїСЂРёРјРµСЂ, email РґР»СЏ РїРѕСЃР»РµРґСѓСЋС‰РµРіРѕ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ РІС…РѕРґР°)
   shared_preferences: ^2.2.2
-  # Для получения email с устройства (опционально):
-  google_sign_in: ^6.1.4  # для Android
-  #apple_sign_in: ^1.0.0  # для iOS (если нужно)
+  # Р”Р»СЏ РїРѕР»СѓС‡РµРЅРёСЏ email СЃ СѓСЃС‚СЂРѕР№СЃС‚РІР° (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ):
+  google_sign_in: ^6.1.4  # РґР»СЏ Android
+  #apple_sign_in: ^1.0.0  # РґР»СЏ iOS (РµСЃР»Рё РЅСѓР¶РЅРѕ)
 
-  #для проверки обновлений (новой версии), скачивания на устройство и запуска обновления
+  #РґР»СЏ РїСЂРѕРІРµСЂРєРё РѕР±РЅРѕРІР»РµРЅРёР№ (РЅРѕРІРѕР№ РІРµСЂСЃРёРё), СЃРєР°С‡РёРІР°РЅРёСЏ РЅР° СѓСЃС‚СЂРѕР№СЃС‚РІРѕ Рё Р·Р°РїСѓСЃРєР° РѕР±РЅРѕРІР»РµРЅРёСЏ
   crypto: ^3.0.7
   dio: ^5.9.1
   package_info_plus: ^9.0.0
@@ -123,7 +117,14 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/Logo.jpg"  # путь к вашей иконке
-  # Для адаптивных иконок Android (API 26+):
+  image_path: "assets/icons/Logo.jpg"  # РїСѓС‚СЊ Рє РІР°С€РµР№ РёРєРѕРЅРєРµ
+  # Р”Р»СЏ Р°РґР°РїС‚РёРІРЅС‹С… РёРєРѕРЅРѕРє Android (API 26+):
   # adaptive_icon_background: "assets/icons/background.png"
   # adaptive_icon_foreground: "assets/icons/foreground.png"
+
+
+
+
+
+
+
