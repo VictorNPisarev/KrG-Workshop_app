@@ -47,93 +47,75 @@ class _AppNavigatorState extends State<AppNavigator> {
   AppState _appState = AppState.loading;
   String? _error;
   AppUpdate? _availableUpdate;
-  bool _dialogShown = false;
+  bool _updatesChecked = false; // Новый флаг
   
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    // Запускаем только инициализацию auth, проверку обновлений сделаем отдельно
+    _initializeAuth();
   }
   
-  Future<void> _initializeApp() async {
+  Future<void> _initializeAuth() async {
     try {
-      print('🚀 Начало инициализации приложения');
+      print('🔄 Инициализация AuthProvider...');
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.initialize();
       
-      // Настраиваем менеджер обновлений
+      if (authProvider.error != null) {
+        throw Exception(authProvider.error);
+      }
+      
+      // Auth инициализирован, можно проверять обновления
+      if (mounted) {
+        setState(() => _appState = AppState.ready);
+        // Проверку обновлений запускаем отдельно
+        _checkUpdates();
+      }
+    } catch (e) {
+      print('❌ Ошибка инициализации: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _appState = AppState.error;
+        });
+      }
+    }
+  }
+  
+  Future<void> _checkUpdates() async {
+    try {
+      print('🔄 Проверка обновлений...');
+      
       GitHubUpdateManager.configure(
         repoOwner: 'VictorNPisarev',
         repoName: 'KrG-Workshop_app',
       );
       
-      // 1. Инициализируем AuthProvider
-      print('🔄 Инициализация AuthProvider...');
-      final authProvider = Provider.of<AuthProvider>(
-        context,
-        listen: false,
-      );
-      await authProvider.initialize();
-      
-      // Проверяем, не было ли ошибки
-      if (authProvider.error != null) {
-        throw Exception(authProvider.error);
-      }
-      
-      // 2. Проверяем обновления
-      print('🔄 Проверка обновлений...');
-      final update = await _checkForUpdatesWithRetry();
-      
-      if (update != null) {
-        print('🎉 Обновление найдено, показываем диалог');
-        setState(() {
-          _availableUpdate = update;
-          _appState = AppState.checkingUpdates;
-        });
-        
-        // Ждем немного, чтобы анимация загрузки была видна
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Показываем диалог ОТСЮДА, не из build!
-        await _showUpdateDialog(update);
-        
-        // После закрытия диалога переходим к приложению
-        if (mounted) {
-          setState(() {
-            _availableUpdate = null;
-            _appState = AppState.ready;
-          });
-        }
-      } else {
-        print('✅ Обновлений не найдено');
-        setState(() => _appState = AppState.ready);
-      }
-      
-    } catch (e) {
-      print('❌ Ошибка инициализации: $e');
-      setState(() {
-        _error = e.toString();
-        _appState = AppState.error;
-      });
-    }
-  }
-  
-  Future<AppUpdate?> _checkForUpdatesWithRetry() async {
-    try {
       final update = await GitHubUpdateManager.checkForUpdates();
       
       if (update != null) {
-        // Проверяем, нужно ли показывать это обновление
+        print('🎉 Обновление найдено: ${update.version}');
+        
         final shouldShow = await GitHubUpdateManager.shouldShowUpdate(update.versionCode);
-        return shouldShow ? update : null;
+        
+        if (shouldShow && mounted) {
+          // Сохраняем обновление
+          _availableUpdate = update;
+          _updatesChecked = true;
+          
+          // Показываем диалог
+          await _showUpdateDialog(update);
+        }
+      } else {
+        print('✅ Обновлений не найдено');
       }
-      return null;
     } catch (e) {
       print('⚠️ Ошибка проверки обновлений: $e');
-      return null;
     }
   }
   
   Future<void> _showUpdateDialog(AppUpdate update) async {
-    // Показываем диалог напрямую, без WidgetsBinding
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -150,81 +132,35 @@ class _AppNavigatorState extends State<AppNavigator> {
       return _buildErrorScreen();
     }
     
-    // 2. Если проверяем обновления ИЛИ есть обновление - показываем индикатор
-    if (_appState == AppState.checkingUpdates || _availableUpdate != null) {
-      return _buildUpdateCheckScreen();
+    // 2. Если идёт загрузка - показываем сплеш
+    if (_appState == AppState.loading || authProvider.isLoading) {
+      return const SplashScreen();
     }
     
-    // 3. Если всё готово - основная навигация
+    // 3. Основная навигация
     if (_appState == AppState.ready) {
-      // Если пользователь не авторизован - экран входа
+      // Если есть обновление И мы его еще не показывали
+      if (_availableUpdate != null && !_updatesChecked) {
+        // Показываем диалог обновления сразу
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _updatesChecked = true; // Помечаем как показанное
+          _showUpdateDialog(_availableUpdate!);
+        });
+      }
+      
+      // Показываем основной интерфейс
       if (!authProvider.isAuthenticated) {
         return const LoginScreen();
       }
       
-      // Если пользователь авторизован, но не выбрал рабочее место
       if (authProvider.currentWorkplace == null) {
         return const SelectWorkplaceScreen();
       }
       
-      // Если все готово - главный экран
       return const HomeScreen();
     }
     
-    // 4. По умолчанию - обычный сплеш
     return const SplashScreen();
-  }
-  
-  Widget _buildUpdateCheckScreen() {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 4,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      _availableUpdate != null ? Colors.blue : Colors.grey,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _availableUpdate != null ? Icons.update : Icons.search,
-                  size: 30,
-                  color: _availableUpdate != null ? Colors.blue : Colors.grey,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _availableUpdate != null 
-                ? 'Найдено обновление!'
-                : 'Проверка обновлений...',
-              style: const TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              _availableUpdate?.version ?? 'Подождите...',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            if (_availableUpdate != null) ...[
-              const SizedBox(height: 20),
-              const Text(
-                'Открывается диалог обновления...',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
   }
   
   Widget _buildErrorScreen() {
@@ -235,11 +171,7 @@ class _AppNavigatorState extends State<AppNavigator> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.red,
-              ),
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 20),
               const Text(
                 'Ошибка запуска',
@@ -260,9 +192,9 @@ class _AppNavigatorState extends State<AppNavigator> {
                     _error = null;
                     _appState = AppState.loading;
                     _availableUpdate = null;
-                    _dialogShown = false;
+                    _updatesChecked = false;
                   });
-                  _initializeApp();
+                  _initializeAuth();
                 },
               ),
             ],
@@ -272,7 +204,6 @@ class _AppNavigatorState extends State<AppNavigator> {
     );
   }
 }
-
 // Упрощенный диалог обновления
 class UpdateDialog extends StatefulWidget {
   final AppUpdate update;
