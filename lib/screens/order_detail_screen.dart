@@ -254,7 +254,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
     void _completeOrder(BuildContext context, OrderInProduct order, String userId)
     {
+        print('🔴 _completeOrder вызван для заказа ${order.orderNumber}');
         final ordersProvider = context.read<OrdersProvider>();
+        //print('📝 Вызвано из: ${stackTrace.toString().split('\n').take(3).join('\n')}');
         
         showDialog(
             context: context,
