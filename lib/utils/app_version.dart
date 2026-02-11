@@ -29,7 +29,8 @@ class AppVersion {
     }
     
     // Если версии одинаковые, сравниваем build number
-    return buildNumber > other.buildNumber;
+    //return buildNumber > other.buildNumber;
+    return false;
   }
   
   @override
