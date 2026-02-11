@@ -111,55 +111,30 @@ class OrdersProvider extends ChangeNotifier
     if (_currentWorkplace == null) return;
 
     try {
-      print('🔄 Параллельная загрузка заказов...');
+      print('🔄 Загрузка заказов...');
 
-      // Собираем ID всех нужных участков
-      final List<String> workplaceIds = [_currentWorkplace!.id];
-      if (_currentWorkplace!.previousWorkplace != null) 
-      {
-        workplaceIds.add(_currentWorkplace!.previousWorkplace!);
-      }
+      // Создаем Future для параллельного выполнения
+      final futures = <Future<List<OrderInProduct>>>[
+        DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
+        if (_currentWorkplace!.previousWorkplace != null)
+          DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!, false),
+      ];
 
-      // Загружаем все заказы параллельно
-      final ordersMap = await DataService.getOrdersForMultipleWorkplaces(workplaceIds);
-
-      // Обрабатываем текущие заказы
-      //final currentWorkplaceOrders = ordersMap[_currentWorkplace!.id] ?? [];
-      final currentWorkplaceOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id, true);
+      // Выполняем параллельно
+      final results = await Future.wait(futures);
       
-      _currentOrders = currentWorkplaceOrders; //По idWorkplace в orderInProduct
-            
+      // Текущие заказы (всегда первый результат)
+      _currentOrders = results[0];
       _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
-      print('✅ Текущих заказов: ${_currentOrders.length}');
-
-      // ФИЛЬТРАЦИЯ 1: Не показываем завершенные заказы на текущем участке
-      _currentOrders = _currentOrders
-          .where((order) => !order.operations.isCompleted)  // ← ТОЛЬКО НЕ ЗАВЕРШЕННЫЕ
-          .toList();
-
-      // СОРТИРОВКА по readyDate (по возрастанию)
-      //_currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
-      print('✅ Текущих заказов (не завершены): ${_currentOrders.length} из ${currentWorkplaceOrders.length}');
-
-      // Обрабатываем ожидающие заказы
-      if (_currentWorkplace!.previousWorkplace != null) 
-      {
-        //final pendingWorkplaceOrders = ordersMap[_currentWorkplace!.previousWorkplace!] ?? [];
-        final pendingWorkplaceOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
-        _pendingOrders = pendingWorkplaceOrders;
-        _pendingOrders.forEach((order) => order.status = OrderStatus.pending); //Для заказов в ожидании статус всегда "Ожидание", не зависимо ни от чего
-        // СОРТИРОВКА по readyDate (по возрастанию)
-        //_pendingOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
-        
-        print('✅ Ожидающих заказов: ${_pendingOrders.length}');
-      } 
-      else 
-      {
-        _pendingOrders = [];
-        print('ℹ️ Нет предыдущего рабочего места, ожидающие заказы не загружаются');
-      }
-
+      _currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
+      
+      // Ожидающие заказы (если есть второй результат)
+      _pendingOrders = results.length > 1 ? results[1] : [];
+      _pendingOrders.forEach((order) => order.status = OrderStatus.pending);
+      
       sortOrders();
+      
+      print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
     } 
     catch (e) 
     {

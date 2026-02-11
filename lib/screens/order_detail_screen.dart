@@ -72,9 +72,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             currentOrder.workplaceId != ordersProvider.currentWorkplace?.id;
         
         // Проверяем, доступна ли кнопка "Завершить"
-        final canComplete = isCurrentOrder && 
+        final canComplete = isCurrentOrder; /*&& 
             ordersProvider.currentWorkplace?.id != null &&
-            currentOrder.workplaceId == ordersProvider.currentWorkplace?.id;
+            currentOrder.workplaceId == ordersProvider.currentWorkplace?.id;*/
     
 
         return  Scaffold(
