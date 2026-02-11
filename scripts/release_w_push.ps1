@@ -47,10 +47,11 @@ function Show-VersionMenu($current) {
 function Update-PubspecVersion($oldVersion, $newVersion) {
     # Обновляем версию в pubspec.yaml
     $content = Get-Content -Path "pubspec.yaml" -Raw
-    $newContent = $content -replace '(?m)^(\s*version:\s*).+', "version: $newVersion"
+    $newContent = $content -replace '(?m)^(\s*version:\s*).+', "`$1$newVersion"
     Set-Content -Path "pubspec.yaml" -Value $newContent -Encoding UTF8
     Write-Host "✅ Обновлен pubspec.yaml: $oldVersion → $newVersion" -ForegroundColor Green
 }
+
 
 function Get-MD5Hash($filePath) {
     $hash = (Get-FileHash -Path $filePath -Algorithm MD5).Hash.ToLower()
