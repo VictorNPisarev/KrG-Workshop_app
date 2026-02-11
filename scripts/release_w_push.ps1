@@ -44,11 +44,35 @@ function Show-VersionMenu($current) {
     return $choice
 }
 
+#function Update-PubspecVersion($oldVersion, $newVersion) {
+#    # Обновляем версию в pubspec.yaml
+#    $content = Get-Content -Path "pubspec.yaml" -Raw
+#    $newContent = $content -replace '(?m)^(\s*version:\s*).+', "`$1$newVersion"
+#    Set-Content -Path "pubspec.yaml" -Value $newContent -Encoding UTF8
+#    Write-Host "✅ Обновлен pubspec.yaml: $oldVersion → $newVersion" -ForegroundColor Green
+#}
+
 function Update-PubspecVersion($oldVersion, $newVersion) {
-    # Обновляем версию в pubspec.yaml
-    $content = Get-Content -Path "pubspec.yaml" -Raw
-    $newContent = $content -replace '(?m)^(\s*version:\s*).+', "`$1$newVersion"
-    Set-Content -Path "pubspec.yaml" -Value $newContent -Encoding UTF8
+    # Читаем файл как байты, чтобы сохранить оригинальные окончания строк (LF)
+    $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path "pubspec.yaml"))
+    $content = [System.Text.Encoding]::UTF8.GetString($bytes)
+    
+    # Безопасная замена: ищем "version: X.Y.Z+BUILD" и заменяем только значение
+    $pattern = "(?m)^version:\s*[\d\.]+\+\d+"
+    if ($content -notmatch $pattern) {
+        throw "Не найдена строка версии в формате 'version: X.Y.Z+BUILD' в pubspec.yaml"
+    }
+    
+    $newContent = $content -replace $pattern, "version: $newVersion"
+    
+    # Проверяем, что замена прошла успешно
+    if ($newContent -notmatch "version:\s*$newVersion") {
+        throw "Ошибка: версия не обновлена корректно в pubspec.yaml"
+    }
+    
+    # Сохраняем с оригинальными окончаниями строк (важно для YAML!)
+    [System.IO.File]::WriteAllText((Resolve-Path "pubspec.yaml"), $newContent, [System.Text.Encoding]::UTF8)
+    
     Write-Host "✅ Обновлен pubspec.yaml: $oldVersion → $newVersion" -ForegroundColor Green
 }
 
