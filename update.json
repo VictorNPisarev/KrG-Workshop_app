@@ -1,0 +1,15 @@
+﻿{
+    "checksum":  "0edef66fd28533854ac6a936d284bbf3",
+    "minimum_version_code":  1,
+    "version_code":  14,
+    "version":  "1.2.16",
+    "release_notes":  [
+                          "Автоматическая сборка версии 1.2.16",
+                          "Улучшения производительности",
+                          "Исправление ошибок"
+                      ],
+    "file_name":  "workshop-app-v1.2.16.apk",
+    "download_url":  "https://github.com/VictorNPisarev/KrG-Workshop_app/releases/download/v1.2.16/app-release.apk",
+    "file_size":  51014361,
+    "force_update":  false
+}
