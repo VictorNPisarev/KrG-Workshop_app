@@ -214,16 +214,52 @@ class AuthProvider extends ChangeNotifier
     }
     
     // Выбор рабочего места
-    Future<void> selectWorkplace(Workplace workplace) async
+  // Выбор рабочего места
+  Future<void> selectWorkplace(Workplace workplace) async {
+    _isLoading = true;  // Показываем индикатор загрузки
+    notifyListeners();
+    
+    try {
+      print('🎯 Выбрано рабочее место: ${workplace.name} (ID: ${workplace.id})');
+      print('🔄 Загружаем полную конфигурацию участка...');
+      
+      // Загружаем полную информацию о рабочем месте со связями
+      
+      final fullWorkplace = await DataService.getWorkplaceById(workplace.id)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              print('⏰ Таймаут загрузки конфигурации, использую базовую');
+              return workplace; // возвращаем базовое при таймауте
+            },
+          );
+      
+      _currentWorkplace = fullWorkplace;
+      
+      // Сохраняем выбор
+      //await _saveWorkplaceSelection(workplace.id);
+      
+      print('✅ Полная конфигурация загружена:');
+      print('   Предыдущие участки: ${fullWorkplace.possiblePreviousWorkplaces}');
+      print('   Следующие участки: ${fullWorkplace.possibleNextWorkplaces}');
+    } 
+    catch (e) 
     {
-        _currentWorkplace = workplace;
-        print('🎯 Выбрано рабочее место: ${workplace.name}');
-        
-        // Сохраняем выбор
-        await _saveWorkplaceSelection(workplace.id);
-        
-        notifyListeners();
+      print('❌ Ошибка при загрузке полной конфигурации участка: $e');
+      
+      // В случае ошибки используем базовую информацию
+      _currentWorkplace = workplace;
+      //await _saveWorkplaceSelection(workplace.id);
+      
+      // Показываем уведомление об ошибке (опционально)
+      _error = 'Не удалось загрузить связи участка, используем базовую конфигурацию';
+    } 
+    finally 
+    {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
     
     // Переключение между рабочими местами
     Future<void> switchWorkplace(String workplaceId) async

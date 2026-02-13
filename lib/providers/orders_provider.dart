@@ -106,44 +106,90 @@ class OrdersProvider extends ChangeNotifier
   }
 
   // Параллельная загрузка заказов
-  Future<void> _loadOrdersParallel() async 
+Future<void> _loadOrdersParallel() async 
+{
+  if (_currentWorkplace == null) return;
+
+  try 
   {
-    if (_currentWorkplace == null) return;
-
-    try {
-      print('🔄 Загрузка заказов...');
-
-      // Создаем Future для параллельного выполнения
-      final futures = <Future<List<OrderInProduct>>>[
-        DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
-        if (_currentWorkplace!.previousWorkplace != null)
-          DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!, false),
-      ];
-
-      // Выполняем параллельно
-      final results = await Future.wait(futures);
-      
-      // Текущие заказы (всегда первый результат)
-      _currentOrders = results[0];
-      _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
-      _currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
-      
-      // Ожидающие заказы (если есть второй результат)
-      _pendingOrders = results.length > 1 ? results[1] : [];
-      _pendingOrders.forEach((order) => order.status = OrderStatus.pending);
-      
-      sortOrders();
-      
-      print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
-    } 
-    catch (e) 
+    print('🔄 Загрузка заказов для ${_currentWorkplace!.name}');
+    print('   Предыдущие участки: ${_currentWorkplace!.possiblePreviousWorkplaces}');
+    
+    // 1. Текущие заказы
+    final currentFuture = DataService.getOrdersForWorkplace(
+      _currentWorkplace!.id, 
+      true
+    );
+    
+    // 2. Ожидающие заказы - СО ВСЕХ возможных предыдущих участков
+    final List<Future<List<OrderInProduct>>> pendingFutures = [];
+    
+    // Используем новый список possiblePreviousWorkplaces
+    for (final sourceId in _currentWorkplace!.possiblePreviousWorkplaces) 
     {
-      _error = 'Ошибка загрузки заказов: ${e.toString()}';
-      print('❌ Ошибка при загрузке заказов: $e');
-      rethrow;
+      if (sourceId.isNotEmpty) 
+      {
+        pendingFutures.add(DataService.getOrdersForWorkplace(sourceId, false));
+      }
     }
-  }
+    
+    // Если есть хотя бы один источник, загружаем
+    List<List<OrderInProduct>> results;
+    
+    if (pendingFutures.isNotEmpty) 
+    {
+      final allFutures = [currentFuture, ...pendingFutures];
+      results = await Future.wait(allFutures);
+    } 
+    else 
+    {
+      // Если нет предыдущих участков, загружаем только текущие заказы
+      results = [await currentFuture];
+    }
+    
+    // Текущие заказы
+    _currentOrders = results[0];
+    
+    _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
+    
+    _currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
+    
+    // Ожидающие заказы - объединяем результаты со всех источников
+    _pendingOrders = [];
 
+    for (int i = 1; i < results.length; i++) 
+    {
+      _pendingOrders.addAll(results[i]);
+
+      print('i = $i, В ожидании: ${_pendingOrders.length}');
+    }
+    
+    // Убираем дубликаты (один заказ может быть в нескольких источниках)
+    final uniqueOrders = <String, OrderInProduct>{};
+    
+    for (final order in _pendingOrders) 
+    {
+      if (!order.operations.isCompleted) 
+      {
+        uniqueOrders[order.id] = order;
+      }
+    }
+    _pendingOrders = uniqueOrders.values.toList();
+    
+    _pendingOrders.forEach((order) => order.status = OrderStatus.pending);
+    
+    sortOrders();
+    
+    print('✅ Загружено: ${_currentOrders.length} текущих, '
+          '${_pendingOrders.length} ожидающих (из ${_currentWorkplace!.possiblePreviousWorkplaces.length} источников)');
+  } 
+  catch (e) 
+  {
+    _error = 'Ошибка загрузки заказов: ${e.toString()}';
+    print('❌ Ошибка: $e');
+    rethrow;
+  }
+}
   void sortOrders() 
   {
     _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));

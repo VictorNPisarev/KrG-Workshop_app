@@ -105,6 +105,49 @@ class DataService {
     }
   }
 
+  static Future<Workplace> getWorkplaceById(String workplaceId) async 
+  {
+    try 
+    {
+      print('🔍 Загрузка полной информации о рабочем месте: $workplaceId');
+      
+      final response = await http.get(Uri.parse('$_baseUrl?action=getWorkplaceById&workplaceId=$workplaceId'),).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) 
+      {
+        final workplace = await compute(_parseWorkplaceResponse, response.body);
+        print('✅ Загружено рабочее место: ${workplace.name}');
+        print('   Предыдущие: ${workplace.possiblePreviousWorkplaces}');
+        print('   Следующие: ${workplace.possibleNextWorkplaces}');
+        return workplace;
+      } 
+      else 
+      {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+    } 
+    catch (e) 
+    {
+      print('❌ Ошибка в getWorkplaceById: $e');
+      rethrow;
+    }
+  }
+
+  static Workplace _parseWorkplaceResponse(String responseBody) 
+  {
+    try 
+    {
+      Map<String, dynamic> jsonData = jsonDecode(responseBody);
+      
+      return Workplace.fromJson(jsonData); // Ваш существующий fromJson должен уметь парсить новые поля
+    } 
+    catch (e) 
+    {
+      print('❌ Ошибка парсинга рабочего места: $e');
+      rethrow;
+    }
+  }
+
   // Получение заказов для участка
   static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId, [byLogs = false]) async 
   {

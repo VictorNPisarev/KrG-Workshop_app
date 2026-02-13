@@ -7,8 +7,12 @@ class Workplace
     final String name;
     final bool isWorkPlace;
 
-    String? previousWorkplace;
-    String? nextWorkPlace;
+    final List<String> possiblePreviousWorkplaces;  //Переход на нелинейную последовательность производства
+    final List<String> possibleNextWorkplaces;      //Переход на нелинейную последовательность производства
+
+
+    String? previousWorkplace;  //оставил для совместимости
+    String? nextWorkPlace;      //оставил для совместимости
     IconData workplaceIcon;
     
     Workplace({
@@ -18,14 +22,19 @@ class Workplace
         required this.nextWorkPlace,
         required this.isWorkPlace,
         this.workplaceIcon = Icons.work,
+        required this.possiblePreviousWorkplaces,  
+        required this.possibleNextWorkplaces,      
     });
     
-        // Фабричный конструктор для создания нового заказа
+    // Фабричный конструктор для создания нового заказа
     factory Workplace.create({
         required String name,
         bool isWorkPlace = true,
         String? previousWorkPlace,
-        String? nextWorkPlace
+        String? nextWorkPlace,
+        List<String>? possiblePreviousWorkplaces,  
+        List<String>? possibleNextWorkplaces,  
+
     })
     {
         final id = Uuid().v4(); // Генерация UUID
@@ -34,7 +43,10 @@ class Workplace
             name: name,
             isWorkPlace: isWorkPlace,
             previousWorkplace: previousWorkPlace,
-            nextWorkPlace: nextWorkPlace
+            nextWorkPlace: nextWorkPlace,
+            possiblePreviousWorkplaces: possiblePreviousWorkplaces ?? [],  // По умолчанию пустой список
+            possibleNextWorkplaces: possibleNextWorkplaces ?? [],          // По умолчанию пустой список
+
         );
     }
 
@@ -58,6 +70,22 @@ class Workplace
             final isWorkplaceStr = json['Участок производства'];
             print('   Участок производства: $isWorkplaceStr (тип: ${isWorkplaceStr.runtimeType})');
             
+            // Парсим новые поля (ожидаем, что API вернёт их как строки с разделителями)
+            // Например: "wp1,wp2,wp3" или как массив
+            List<String> parseIds(dynamic value) 
+            {
+                if (value == null) return [];
+                
+                if (value is List) return value.map((e) => e.toString()).toList();
+                
+                if (value is String) return value.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+                return [];
+              }
+            
+            final possiblePrevious = parseIds(json['previousWorkplaces']);
+            final possibleNext = parseIds(json['nextWorkplaces']);
+
             // Map для иконок
             final Map<String, IconData> workplaceIconsMapping = 
             {
@@ -69,6 +97,7 @@ class Workplace
               'Фурнитура': Icons.lock_open,
               'Остекление': Icons.aspect_ratio,
               'Упаковка': Icons.inventory_2,
+              'Столярка': Icons.handyman,
             };
 
             final icon = workplaceIconsMapping[status] ?? Icons.work_outline;
@@ -90,6 +119,8 @@ class Workplace
                 previousWorkplace: previous?.toString(),
                 nextWorkPlace: null, // Пока нет в данных
                 isWorkPlace: (isWorkplaceStr?.toString() ?? 'Нет').toLowerCase() == 'да',
+                possiblePreviousWorkplaces: possiblePrevious.isEmpty ? [previous.toString()] : possiblePrevious,
+                possibleNextWorkplaces: possibleNext.isEmpty ? [] : possibleNext,
                 workplaceIcon: icon
             );
         }
@@ -108,6 +139,8 @@ class Workplace
             'previousWorkPlace': previousWorkplace,
             'nextWorkPlace': nextWorkPlace,
             'isWorkPlace': isWorkPlace,
+            'possiblePreviousWorkplaces': possiblePreviousWorkplaces,
+            'possibleNextWorkplaces': possibleNextWorkplaces,
         };
     }
 
@@ -120,6 +153,8 @@ class Workplace
             previousWorkplace: null,
             nextWorkPlace: null,
             isWorkPlace: true,
+            possiblePreviousWorkplaces: [],
+            possibleNextWorkplaces: [],
         );
     }
 
