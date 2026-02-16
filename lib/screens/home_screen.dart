@@ -434,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     {
         final authProvider = context.read<AuthProvider>();
         final ordersProvider = context.read<OrdersProvider>();
-        
+
         // 1. Закрываем Drawer сразу
         Navigator.pop(context);
         
@@ -445,17 +445,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 duration: const Duration(seconds: 2),
             ),
         );
-        
-        // 3. Обновляем рабочее место в AuthProvider
-        await authProvider.selectWorkplace(workplace);
-        
-        // 4. Очищаем и загружаем заказы для нового рабочего места
+
         ordersProvider.clearData();
-        await ordersProvider.initialize(workplace.id, availableWorkplaces: authProvider.availableWorkplaces);
+        await authProvider.selectWorkplace(workplace);
     }
 
     void _checkForUpdates() async 
     {
+        // 1. Закрываем Drawer сразу
+        Navigator.pop(context);
+
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Проверяем обновления...'),

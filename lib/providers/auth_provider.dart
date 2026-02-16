@@ -215,11 +215,13 @@ class AuthProvider extends ChangeNotifier
     
     // Выбор рабочего места
   // Выбор рабочего места
-  Future<void> selectWorkplace(Workplace workplace) async {
+  Future<void> selectWorkplace(Workplace workplace) async 
+  {
     _isLoading = true;  // Показываем индикатор загрузки
     notifyListeners();
     
-    try {
+    try 
+    {
       print('🎯 Выбрано рабочее место: ${workplace.name} (ID: ${workplace.id})');
       print('🔄 Загружаем полную конфигурацию участка...');
       

@@ -93,7 +93,9 @@ class OrdersProvider extends ChangeNotifier
 
       _isInitialized = true;
       print('✅ OrdersProvider.initialize: завершено успешно');
-    } catch (e) {
+    } 
+    catch (e) 
+    {
       _error = 'Ошибка инициализации: $e';
       print('❌ OrdersProvider.initialize: ошибка - $e');
 
@@ -113,7 +115,6 @@ Future<void> _loadOrdersParallel() async
   try 
   {
     print('🔄 Загрузка заказов для ${_currentWorkplace!.name}');
-    print('   Предыдущие участки: ${_currentWorkplace!.possiblePreviousWorkplaces}');
     
     // 1. Текущие заказы
     final currentFuture = DataService.getOrdersForWorkplace(
@@ -123,12 +124,16 @@ Future<void> _loadOrdersParallel() async
     
     // 2. Ожидающие заказы - СО ВСЕХ возможных предыдущих участков
     final List<Future<List<OrderInProduct>>> pendingFutures = [];
+
+    print('   Предыдущие участки: ${_currentWorkplace!.possiblePreviousWorkplaces.length}: ');
     
     // Используем новый список possiblePreviousWorkplaces
     for (final sourceId in _currentWorkplace!.possiblePreviousWorkplaces) 
     {
       if (sourceId.isNotEmpty) 
       {
+        print('${_currentWorkplace!.possiblePreviousWorkplaces}');
+
         pendingFutures.add(DataService.getOrdersForWorkplace(sourceId, false));
       }
     }
@@ -169,7 +174,7 @@ Future<void> _loadOrdersParallel() async
     
     for (final order in _pendingOrders) 
     {
-      if (!order.operations.isCompleted) 
+      if (!uniqueOrders.containsKey(order.id)) 
       {
         uniqueOrders[order.id] = order;
       }
@@ -338,7 +343,8 @@ Future<void> _loadOrdersParallel() async
   }
 
   // Периодическое автообновление
-  void _startAutoRefresh() {
+  void _startAutoRefresh() 
+  {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       _loadOrdersParallel();
