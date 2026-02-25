@@ -32,7 +32,8 @@ class DataService {
   }
 
   // Получение рабочих мест
-  static Future<List<Workplace>> getWorkplaces() async {
+  static Future<List<Workplace>> getWorkplaces() async 
+  {
     final now = DateTime.now();
 
     // Проверяем кэш (5 минут)
@@ -45,12 +46,14 @@ class DataService {
 
     print('🚀 GAS запрос: getWorkplaces');
 
-    try {
-      final response = await http
+    try 
+    {
+      final response = await _callGAS('getWorkplaces');
+      /*final response = await http
           .get(
             Uri.parse('$_baseUrl?action=getWorkplaces'),
           )
-          .timeout(_timeoutDuration);
+          .timeout(_timeoutDuration);*/
 
       print('✅ Ответ получен, статус: ${response.statusCode}');
 
@@ -81,6 +84,7 @@ class DataService {
       print('❌ Ошибка в getWorkplaces: $e');
       return _cachedWorkplaces ?? [];
     }
+
   }
 
   static List<Workplace> _parseWorkplacesResponse(String responseBody) {
@@ -123,12 +127,13 @@ class DataService {
 
       final action = byLogs ? 'getOrdersByWorkplaceLogs' : 'getOrdersByWorkplace';
 
-      final response = await http
+      final response = await _callGAS(action, params: {'workplaceId': workplaceId});
+      /*final response = await http
           .get(
             //Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
             Uri.parse('$_baseUrl?action=$action&workplaceId=$workplaceId'),
           )
-          .timeout(_timeoutDuration);
+          .timeout(_timeoutDuration);*/
 
       if (response.statusCode == 200) {
         // Используем compute для парсинга в фоне
@@ -153,6 +158,8 @@ class DataService {
       print('❌ Ошибка в getOrdersByWorkplace: $e');
       return _ordersCache[workplaceId] ?? [];
     }
+
+
   }
 
   // Парсинг заказов в фоне
@@ -215,12 +222,14 @@ class DataService {
     }
   }
 
-  // Остальные методы без изменений...
-  static Future<User?> getUserByEmail(String email) async {
-    try {
-      final response = await http.get(
+  static Future<User?> getUserByEmail(String email) async 
+  {
+    try 
+    {
+      final response = await _callGAS('getUserByEmail', params: {'email': email});
+      /*final response = await http.get(
         Uri.parse('$_baseUrl?action=getUserByEmail&email=$email'),
-      ).timeout(_timeoutDuration);
+      ).timeout(_timeoutDuration);*/
 
       if (response.statusCode == 200) {
         return _parseUserResponse(response.body);
@@ -253,11 +262,14 @@ class DataService {
     }
   }
 
-  static Future<List<Workplace>> getUserWorkplaces(String userId) async {
-    try {
-      final response = await http.get(
+  static Future<List<Workplace>> getUserWorkplaces(String userId) async 
+  {
+    try 
+    {
+      final response = await _callGAS('getUserWorkplaces', params: {'userId': userId});
+      /*final response = await http.get(
         Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
-      ).timeout(_timeoutDuration);
+      ).timeout(_timeoutDuration);*/
 
       if (response.statusCode == 200) {
         return _parseUserWorkplacesResponse(response.body);
@@ -311,11 +323,12 @@ class DataService {
 
       final action = status == OrderStatus.completed ? 'completeOrderWorkplace' : 'updateOrderWorkplace';
 
-      try {
+      try 
+      {
         final response = await client
             .post(
               Uri.parse(_baseUrl),
-              headers: {'Content-Type': 'application/json'},
+              headers: {'Content-Type': 'text/plain;charset=utf-8'},
               body: json.encode({
                 'action': action,
                 'payload': {
@@ -326,7 +339,7 @@ class DataService {
                 },
               }),
             )
-            .timeout(const Duration(seconds: 10));
+            .timeout(const Duration(seconds: 20));
 
         print('📥 Ответ сервера: ${response.statusCode}');
 
@@ -347,4 +360,37 @@ class DataService {
     }
   }
 
+  // Универсальный метод для всех запросов
+  static Future<http.Response> _callGAS(String action, {Map<String, dynamic>? params}) async 
+  {
+    final client = http.Client();
+
+    try
+    {
+        final response = await client
+            .post(
+            Uri.parse(_baseUrl),
+            headers: {'Content-Type': 'text/plain;charset=utf-8'},
+            body: json.encode({
+                    'action': action,
+                    'params': params ?? {},
+                  }),
+            ).timeout(_timeoutDuration);
+        
+        print('📥 Ответ сервера: ${response.statusCode}');
+
+        if (response.statusCode == 200) 
+        {
+          return response;
+        } 
+        else 
+        {
+          throw Exception('HTTP ${response.statusCode}');
+        }
+    }
+    finally
+    {
+        client.close();
+    }
+  }
 }
