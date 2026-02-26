@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../models/order_in_product.dart';
 import '../models/user.dart';
 import '../models/workplace.dart';
+import '../utils/platform_utils.dart';
 
 class DataService {
   static const String _baseUrl =
@@ -336,6 +337,7 @@ class DataService {
                   'workplaceId': workplaceId,
                   'userId': userId,
                   'status': status.name,
+                  'source': '${PlatformUtils.platform} API',  // источник
                 },
               }),
             )
