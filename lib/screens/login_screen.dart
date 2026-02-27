@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../services/device_auth_service.dart';
+import '../utils/platform_utils.dart';
 
 class LoginScreen extends StatefulWidget
 {
@@ -46,6 +47,13 @@ class _LoginScreenState extends State<LoginScreen>
         {
             print('🔄 Восстановление сессии для email: $savedEmail');
             _emailController.text = savedEmail;
+            // Показываем сообщение пользователю
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('Найден сохраненный email: $savedEmail'),
+                    duration: const Duration(seconds: 1),
+                ),
+            );
         }
         else
         {
@@ -127,11 +135,12 @@ class _LoginScreenState extends State<LoginScreen>
                                     const Text('Запомнить меня'),
                                     const Spacer(),
                                     // Кнопка "Использовать email устройства"
-                                    TextButton.icon(
-                                        icon: const Icon(Icons.phone_android),
-                                        label: const Text('С устройства'),
-                                        onPressed: () => _useDeviceEmail(context),
-                                    ),
+                                    if (!PlatformUtils.isWeb)
+                                        TextButton.icon(
+                                            icon: const Icon(Icons.phone_android),
+                                            label: const Text('С устройства'),
+                                            onPressed: () => _useDeviceEmail(context),
+                                        ),
                                 ],
                             ),
                             
