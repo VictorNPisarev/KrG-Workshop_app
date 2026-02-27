@@ -144,6 +144,8 @@ class AuthProvider extends ChangeNotifier
             // Ищем пользователя
             final user = await DataService.getUserByEmail(email);
 
+            print('after getUserByEmail');
+
             if (user == null)
             {
                 throw Exception('Email не найден');

@@ -17,3 +17,11 @@ samples, guidance on mobile development, and a full API reference.
 
 ## RUN
 **Chrome:** flutter run -d chrome --web-browser-flag "--disable-web-security"
+
+## BUILD release
+**Web:** flutter build web --release --no-tree-shake-icons
+**Apk (push main с новой версией + публикация на Github):** .\scripts\release_w_push.ps1
+
+## ЗАПУСК СЕРВЕРА
+cd build/web
+**node.js**  npx http-server -p 3030 --host 0.0.0.0
