@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen>
                             const Icon(Icons.account_circle, size: 80, color: Colors.blue),
                             const SizedBox(height: 24),
                             const Text(
-                                'Приложение для производственных участков!!!!!!',
+                                'Приложение для производственных участков',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
