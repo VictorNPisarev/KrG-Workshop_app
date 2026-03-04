@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    <!-- Разрешаем статические файлы Flutter -->
+    <staticContent>
+      <mimeMap fileExtension=".dart" mimeType="text/plain" />
+      <mimeMap fileExtension=".js" mimeType="application/javascript" />
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <mimeMap fileExtension=".wasm" mimeType="application/wasm" />
+      <mimeMap fileExtension=".blob" mimeType="application/octet-stream" />
+    </staticContent>
+    <!-- Правила перезаписи для Flutter SPA -->
+    <rewrite>
+      <rules>
+        <rule name="Flutter Routes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/index.html" />
+        </rule>
+      </rules>
+    </rewrite>
+    
+    <!-- Кэширование для производительности -->
+    <caching>
+      <profiles>
+        <add extension=".js" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".css" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".png" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".jpg" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".ico" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".dart" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+        <add extension=".wasm" policy="CacheUntilChange" kernelCachePolicy="CacheUntilChange" />
+      </profiles>
+    </caching>
+    
+    <!-- Сжатие для ускорения -->
+    <urlCompression doStaticCompression="true" doDynamicCompression="true" />
+    
+    <!-- Заголовки CORS для API -->
+    <httpProtocol>
+      <customHeaders>
+        <add name="Access-Control-Allow-Origin" value="*" />
+        <add name="Access-Control-Allow-Methods" value="GET, POST, OPTIONS" />
+        <add name="Access-Control-Allow-Headers" value="Content-Type" />
+      </customHeaders>
+    </httpProtocol>
+  </system.webServer>
+</configuration>

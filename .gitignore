@@ -46,3 +46,4 @@ app.*.map.json
 
 #release update.json
 update.json
+server.pid
