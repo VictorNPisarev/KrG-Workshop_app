@@ -1,35 +1,47 @@
 ﻿# simple_deploy.ps1 - Только сборка и копирование
-param(
-    [string]$ServerPath = "C:\inetpub\wwwroot\workshop_web", #"\\server\WorkshopApp$",
+param
+(
+    [string]$ServerPath = "\\server\Workshop web", 
     [switch]$SkipBuild,
     [switch]$Test  # Проверить доступность без копирования
 )
 
-if ($Test) {
+if ($Test) 
+{
     Write-Host "🔍 Проверка доступности:" -ForegroundColor Cyan
     
     # Проверка сервера
-    if (Test-Connection -ComputerName ($ServerPath -split '\\')[2] -Count 1 -Quiet) {
+    if (Test-Connection -ComputerName ($ServerPath -split '\\')[2] -Count 1 -Quiet) 
+    {
         Write-Host "  ✅ Сервер доступен" -ForegroundColor Green
-    } else {
+    } 
+    else 
+    {
         Write-Host "  ❌ Сервер недоступен" -ForegroundColor Red
     }
     
     # Проверка папки
-    if (Test-Path $ServerPath) {
+    if (Test-Path $ServerPath) 
+    {
         Write-Host "  ✅ Папка доступна" -ForegroundColor Green
-    } else {
+    } 
+    else 
+    {
         Write-Host "  ❌ Папка не найдена" -ForegroundColor Red
     }
     
     exit
 }
 
-if (-not $SkipBuild) {
+if (-not $SkipBuild) 
+{
     Write-Host "📦 Сборка проекта..." -ForegroundColor Yellow
     flutter clean
     flutter build web --release --no-tree-shake-icons
-    if ($LASTEXITCODE -ne 0) { exit 1 }
+    if ($LASTEXITCODE -ne 0) 
+    { 
+        exit 1 
+    }
 }
 
 Write-Host "📋 Копирование на $ServerPath..." -ForegroundColor Yellow
