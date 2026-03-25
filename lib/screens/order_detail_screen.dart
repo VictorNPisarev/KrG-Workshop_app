@@ -67,9 +67,9 @@
 			final isCompleted = currentOrder.status == OrderStatus.completed;
 			
 			// Проверяем, доступна ли кнопка "Взять в работу"
-			final canTakeToWork = isPendingOrder && 
+			final canTakeToWork = isPendingOrder;/* && 
 				ordersProvider.currentWorkplace?.id != null &&
-				currentOrder.workplaceId != ordersProvider.currentWorkplace?.id;
+				currentOrder.workplaceId != ordersProvider.currentWorkplace?.id;*/
 			
 			// Проверяем, доступна ли кнопка "Завершить"
 			final canComplete = isCurrentOrder; /*&& 

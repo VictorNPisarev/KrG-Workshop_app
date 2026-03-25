@@ -20,6 +20,7 @@
 	bool _isLoading = false;
 	String? _error;
 	bool _isInitialized = false;
+	bool _isRefreshing = false;  // поле для индикации обновления
 
 	// Таймер для периодического обновления
 	Timer? _refreshTimer;
@@ -31,6 +32,8 @@
 	bool get isLoading => _isLoading;
 	String? get error => _error;
 	bool get isInitialized => _isInitialized;
+	bool get isRefreshing => _isRefreshing;
+
 
 	// Инициализация провайдера
 	Future<void> initialize(String workplaceId, {Workplace? workplace, List<Workplace>? availableWorkplaces}) async 
@@ -110,58 +113,59 @@
 	{
 		if (_currentWorkplace == null) return;
 
-		try {
-		print('🔄 Загрузка заказов...');
-
-/*		// Создаем Future для параллельного выполнения
-		final futures = <Future<List<OrderInProduct>>>[
-			DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
-			if (_currentWorkplace!.previousWorkplace != null)
-			DataService.getOrdersForWorkplace(_currentWorkplace!.id, false),
-		];
-
-		// Выполняем параллельно
-		final results = await Future.wait(futures);
-		
-		// Текущие заказы (всегда первый результат)
-		_currentOrders = results[0];
-		//_currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
-		//_currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
-		
-		// Ожидающие заказы (если есть второй результат)
-		_pendingOrders = results.length > 1 ? results[1] : [];
-		//_pendingOrders.forEach((order) => order.status = OrderStatus.pending);
-*/
-		// Делаем один запрос, который возвращает все заказы с полем "workplaceOrderStatus"
-		final allOrders = await DataService.getAllOrdersForWorkplace(_currentWorkplace!.id);
-		
-		// Распределяем по спискам
-		_currentOrders = [];
-		_pendingOrders = [];
-		
-		for (var order in allOrders) 
+		try 
 		{
-			// Проверяем поле workplaceOrderStatus
-			if (order.status == OrderStatus.inProgress) 
-			{
-				_currentOrders.add(order);
-			} 
-			else if (order.status == OrderStatus.pending) 
-			{
-				_pendingOrders.add(order);
-			}
-		}
+			print('🔄 Загрузка заказов...');
 
-		
-		sortOrders();
-		
-		print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
+	/*		// Создаем Future для параллельного выполнения
+			final futures = <Future<List<OrderInProduct>>>[
+				DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
+				if (_currentWorkplace!.previousWorkplace != null)
+				DataService.getOrdersForWorkplace(_currentWorkplace!.id, false),
+			];
+
+			// Выполняем параллельно
+			final results = await Future.wait(futures);
+			
+			// Текущие заказы (всегда первый результат)
+			_currentOrders = results[0];
+			//_currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
+			//_currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
+			
+			// Ожидающие заказы (если есть второй результат)
+			_pendingOrders = results.length > 1 ? results[1] : [];
+			//_pendingOrders.forEach((order) => order.status = OrderStatus.pending);
+	*/
+			// Делаем один запрос, который возвращает все заказы с полем "workplaceOrderStatus"
+			final allOrders = await DataService.getAllOrdersForWorkplace(_currentWorkplace!.id);
+			
+			// Распределяем по спискам
+			_currentOrders = [];
+			_pendingOrders = [];
+			
+			for (var order in allOrders) 
+			{
+				// Проверяем поле workplaceOrderStatus
+				if (order.status == OrderStatus.inProgress) 
+				{
+					_currentOrders.add(order);
+				} 
+				else if (order.status == OrderStatus.pending) 
+				{
+					_pendingOrders.add(order);
+				}
+			}
+
+			
+			sortOrders();
+			
+			print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
 		} 
 		catch (e) 
 		{
-		_error = 'Ошибка загрузки заказов: ${e.toString()}';
-		print('❌ Ошибка при загрузке заказов: $e');
-		rethrow;
+			_error = 'Ошибка загрузки заказов: ${e.toString()}';
+			print('❌ Ошибка при загрузке заказов: $e');
+			rethrow;
 		}
 	}
 
@@ -299,27 +303,61 @@
 	}
 
 	// Ручное обновление
-	Future<void> refreshOrders() async {
+	Future<void> refreshOrders() async 
+	{
 		_isLoading = true;
 		notifyListeners();
 
-		try {
-		await _loadOrdersParallel();
-		_error = null;
-		} catch (e) {
-		_error = 'Ошибка обновления: ${e.toString()}';
-		} finally {
-		_isLoading = false;
+		try 
+		{
+			await _loadOrdersParallel();
+			_error = null;
+		} 
+		catch (e) 
+		{
+			_error = 'Ошибка обновления: ${e.toString()}';
+		} 
+		finally 
+		{
+			_isLoading = false;
+			notifyListeners();
+		}
+	}
+
+		// Метод обновления с индикацией
+	Future<void> refreshOrdersWithFeedback() async 
+	{
+		if (_isRefreshing) return;  // защита от двойного нажатия
+		
+		_isRefreshing = true;
 		notifyListeners();
+		
+		try 
+		{
+			await refreshOrders();  // твой существующий метод
+		} 
+		finally 
+		{
+			_isRefreshing = false;
+			notifyListeners();
 		}
 	}
 
 	// Периодическое автообновление
-	void _startAutoRefresh() {
+	void _startAutoRefresh() 
+	{
 		_refreshTimer?.cancel();
-		_refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-		_loadOrdersParallel();
-		notifyListeners();
+		_refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) async
+		{
+			try
+			{
+				await _loadOrdersParallel();
+				notifyListeners();
+			}
+			catch (e)
+			{
+				print('⚠️ Ошибка автообновления: $e');
+			}
 		});
 	}
 
@@ -343,24 +381,28 @@
 
 		try 
 		{
-		// Останавливаем автообновление
-		stopAutoRefresh();
+			// Останавливаем автообновление
+			stopAutoRefresh();
 
-		// Очищаем текущие данные
-		_currentOrders.clear();
-		_pendingOrders.clear();
-		_currentWorkplace = null;
+			// Очищаем текущие данные
+			_currentOrders.clear();
+			_pendingOrders.clear();
+			_currentWorkplace = null;
 
-		// Очищаем кэш перед сменой участка
-		DataService.clearCache();
+			// Очищаем кэш перед сменой участка
+			DataService.clearCache();
 
-		// Инициализируем новый участок
-		await initialize(workplaceId);
-		} catch (e) {
-		_error = 'Ошибка смены участка: ${e.toString()}';
-		} finally {
-		_isLoading = false;
-		notifyListeners();
+			// Инициализируем новый участок
+			await initialize(workplaceId);
+		} 
+		catch (e) 
+		{
+			_error = 'Ошибка смены участка: ${e.toString()}';
+		} 
+		finally 
+		{
+			_isLoading = false;
+			notifyListeners();
 		}
 	}
 
@@ -376,26 +418,6 @@
 		
 		notifyListeners();
 		print('🗑️ OrdersProvider: данные очищены');
-	}
-
-	Future<void> refreshAllOrders() async {
-		_isLoading = true;
-		notifyListeners();
-
-		try 
-		{
-		await _loadOrdersParallel();
-		_error = null;
-		} 
-		catch (e) 
-		{
-		_error = 'Ошибка обновления: ${e.toString()}';
-		} 
-		finally 
-		{
-		_isLoading = false;
-		notifyListeners();
-		}
 	}
 
 	@override

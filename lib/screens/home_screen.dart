@@ -130,10 +130,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ],
                 ),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () => _refreshData(),
-                    tooltip: 'Обновить заказы',
+                  Consumer<OrdersProvider>(
+                    builder: (context, ordersProvider, child) {
+                      return IconButton(
+                        icon: ordersProvider.isRefreshing
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.refresh),
+                        onPressed: ordersProvider.isRefreshing
+                            ? null  // блокирую кнопку во время обновления
+                            : () => _refreshDataWithFeedback(),
+                        tooltip: 'Обновить заказы',
+                      );
+                    },
                   ),
                 ],
             ),
@@ -351,33 +363,61 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         );
     }
     
-    Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color, bool isCurrentTab) {
+    Widget _buildOrdersTab(List<OrderInProduct> orders, String summary, Color color, bool isCurrentTab) 
+    {
+      final ordersProvider = Provider.of<OrdersProvider>(context);
+
       // Создаем уникальный ключ для каждой вкладки
       final String tabKey = '${isCurrentTab ? 'current' : 'pending'}_${orders.length}_${_previousWorkplaceId ?? ''}';
       
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            _buildSummaryInfo(summary, color),
-            const SizedBox(height: 16),
-            Expanded(
-              child: orders.length > 20
-                  ? PaginatedOrderTable(
-                      key: ValueKey(tabKey), // Важно для сброса состояния
-                      orders: orders,
-                      onOrderSelected: _showOrderDetails,
-                      isCurrentTab: isCurrentTab,
-                      tabKey: tabKey,
-                    )
-                  : OrderTableWidget(
-                      orders: orders,
-                      onOrderSelected: _showOrderDetails,
-                      isCurrentTab: isCurrentTab,
-                    ),
+      return Stack(
+        children: [
+        // Основной контент
+
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                _buildSummaryInfo(summary, color),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: orders.length > 20
+                      ? PaginatedOrderTable(
+                          key: ValueKey(tabKey), // Важно для сброса состояния
+                          orders: orders,
+                          onOrderSelected: _showOrderDetails,
+                          isCurrentTab: isCurrentTab,
+                          tabKey: tabKey,
+                        )
+                      : OrderTableWidget(
+                          orders: orders,
+                          onOrderSelected: _showOrderDetails,
+                          isCurrentTab: isCurrentTab,
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+      
+          // Полупрозрачная ширма с индикатором загрузки
+          if (ordersProvider.isRefreshing)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Обновление заказов...',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       );
     }
 
@@ -386,9 +426,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: color.withOpacity(0.3)),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
             ),
             child: Row(
                 children: [
@@ -427,8 +467,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     void _refreshData()
     {
         final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
-        ordersProvider.refreshAllOrders(); // Используем новый метод
+        ordersProvider.refreshOrders(); // Используем новый метод
     }    
+
+    void _refreshDataWithFeedback() 
+    {
+      final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
+      ordersProvider.refreshOrdersWithFeedback();
+    }
 
     void _switchWorkplace(Workplace workplace) async
     {
