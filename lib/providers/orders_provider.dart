@@ -1,383 +1,428 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import '../models/order_in_product.dart';
-import '../models/workplace.dart';
-import '../services/data_service.dart';
-import '../utils/network_utils.dart';
-import 'auth_provider.dart';
+	import 'dart:async';
+	import 'package:flutter/foundation.dart';
+	import 'package:flutter/material.dart';
+	import '../models/order_in_product.dart';
+	import '../models/workplace.dart';
+	import '../services/data_service.dart';
+	import '../utils/network_utils.dart';
+	import 'auth_provider.dart';
 
-class OrdersProvider extends ChangeNotifier 
-{
-  // Списки заказов
-  List<OrderInProduct> _currentOrders = [];
-  List<OrderInProduct> _pendingOrders = [];
+	class OrdersProvider extends ChangeNotifier 
+	{
+	// Списки заказов
+	List<OrderInProduct> _currentOrders = [];
+	List<OrderInProduct> _pendingOrders = [];
 
-  // Текущий рабочий участок
-  Workplace? _currentWorkplace;
+	// Текущий рабочий участок
+	Workplace? _currentWorkplace;
 
-  // Состояния загрузки и ошибок
-  bool _isLoading = false;
-  String? _error;
-  bool _isInitialized = false;
+	// Состояния загрузки и ошибок
+	bool _isLoading = false;
+	String? _error;
+	bool _isInitialized = false;
+	bool _isRefreshing = false;  // поле для индикации обновления
 
-  // Таймер для периодического обновления
-  Timer? _refreshTimer;
+	// Таймер для периодического обновления
+	Timer? _refreshTimer;
 
-  // Геттеры
-  List<OrderInProduct> get currentOrders => _currentOrders;
-  List<OrderInProduct> get pendingOrders => _pendingOrders;
-  Workplace? get currentWorkplace => _currentWorkplace;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  bool get isInitialized => _isInitialized;
+	// Геттеры
+	List<OrderInProduct> get currentOrders => _currentOrders;
+	List<OrderInProduct> get pendingOrders => _pendingOrders;
+	Workplace? get currentWorkplace => _currentWorkplace;
+	bool get isLoading => _isLoading;
+	String? get error => _error;
+	bool get isInitialized => _isInitialized;
+	bool get isRefreshing => _isRefreshing;
 
-  // Инициализация провайдера
-  Future<void> initialize(String workplaceId, {Workplace? workplace, List<Workplace>? availableWorkplaces}) async 
-  {
-    if (_isLoading) return;
 
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+	// Инициализация провайдера
+	Future<void> initialize(String workplaceId, {Workplace? workplace, List<Workplace>? availableWorkplaces}) async 
+	{
+		if (_isLoading) return;
 
-    try 
-    {
-      print('🔄 OrdersProvider.initialize: начало, workplaceId=$workplaceId');
+		_isLoading = true;
+		_error = null;
+		notifyListeners();
 
-      // Проверяем интернет
-      if (!await NetworkUtils.hasInternetConnection()) 
-      {
-        throw Exception('Нет подключения к интернету');
-      }
+		try 
+		{
+		print('🔄 OrdersProvider.initialize: начало, workplaceId=$workplaceId');
 
-      if (workplace != null)
-      {
-          _currentWorkplace = workplace;
-          print('✅ Получил рабочее место из AuthAdapter: ${_currentWorkplace!.name}');
-      }
-      else if (availableWorkplaces != null && availableWorkplaces.isNotEmpty) 
-      {
-          // Используем переданный список
-          _currentWorkplace = availableWorkplaces.firstWhere(
-            (wp) => wp.id == workplaceId,
-            orElse: () => Workplace.fallback(),
-          );
-           print('✅ Получил рабочее место из availableWorkplaces: ${_currentWorkplace!.name}');
-       }
-      else
-      {
-          // Загружаем рабочие места
-          final workplaces = await DataService.getWorkplaces();
-          print('✅ Загружено рабочих мест: ${workplaces.length}');
+		// Проверяем интернет
+		if (!await NetworkUtils.hasInternetConnection()) 
+		{
+			throw Exception('Нет подключения к интернету');
+		}
 
-          // Находим нужное рабочее место
-          final workplace = workplaces.firstWhere(
-            (wp) => wp.id == workplaceId,
-            orElse: () {
-              print('⚠️ Workplace $workplaceId не найден, использую первый');
-              return workplaces.isNotEmpty ? workplaces.first : Workplace.fallback();
-            },
-          );
+		if (workplace != null)
+		{
+			_currentWorkplace = workplace;
+			print('✅ Получил рабочее место из AuthAdapter: ${_currentWorkplace!.name}');
+		}
+		else if (availableWorkplaces != null && availableWorkplaces.isNotEmpty) 
+		{
+			// Используем переданный список
+			_currentWorkplace = availableWorkplaces.firstWhere(
+				(wp) => wp.id == workplaceId,
+				orElse: () => Workplace.fallback(),
+			);
+			print('✅ Получил рабочее место из availableWorkplaces: ${_currentWorkplace!.name}');
+		}
+		else
+		{
+			// Загружаем рабочие места
+			final workplaces = await DataService.getWorkplaces();
+			print('✅ Загружено рабочих мест: ${workplaces.length}');
 
-          _currentWorkplace = workplace;
-      }
+			// Находим нужное рабочее место
+			final workplace = workplaces.firstWhere(
+				(wp) => wp.id == workplaceId,
+				orElse: () {
+				print('⚠️ Workplace $workplaceId не найден, использую первый');
+				return workplaces.isNotEmpty ? workplaces.first : Workplace.fallback();
+				},
+			);
 
-      print('✅ Текущее рабочее место: ${_currentWorkplace!.name}');
+			_currentWorkplace = workplace;
+		}
 
-      // Загружаем заказы параллельно
-      await _loadOrdersParallel();
+		print('✅ Текущее рабочее место: ${_currentWorkplace!.name}');
 
-      // Запускаем периодическое обновление (каждые 5 минут)
-      _startAutoRefresh();
+		// Загружаем заказы параллельно
+		await _loadOrdersParallel();
 
-      _isInitialized = true;
-      print('✅ OrdersProvider.initialize: завершено успешно');
-    } catch (e) {
-      _error = 'Ошибка инициализации: $e';
-      print('❌ OrdersProvider.initialize: ошибка - $e');
+		// Запускаем периодическое обновление (каждые 5 минут)
+		_startAutoRefresh();
 
-      // Используем fallback
-      _useFallbackData(workplaceId);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+		_isInitialized = true;
+		print('✅ OrdersProvider.initialize: завершено успешно');
+		} catch (e) {
+		_error = 'Ошибка инициализации: $e';
+		print('❌ OrdersProvider.initialize: ошибка - $e');
 
-  // Параллельная загрузка заказов
-  Future<void> _loadOrdersParallel() async 
-  {
-    if (_currentWorkplace == null) return;
+		// Используем fallback
+		_useFallbackData(workplaceId);
+		} finally {
+		_isLoading = false;
+		notifyListeners();
+		}
+	}
 
-    try {
-      print('🔄 Загрузка заказов...');
+	// Параллельная загрузка заказов
+	Future<void> _loadOrdersParallel() async 
+	{
+		if (_currentWorkplace == null) return;
 
-      // Создаем Future для параллельного выполнения
-      final futures = <Future<List<OrderInProduct>>>[
-        DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
-        if (_currentWorkplace!.previousWorkplace != null)
-          DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!, false),
-      ];
+		try 
+		{
+			print('🔄 Загрузка заказов...');
 
-      // Выполняем параллельно
-      final results = await Future.wait(futures);
-      
-      // Текущие заказы (всегда первый результат)
-      _currentOrders = results[0];
-      _currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
-      _currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
-      
-      // Ожидающие заказы (если есть второй результат)
-      _pendingOrders = results.length > 1 ? results[1] : [];
-      _pendingOrders.forEach((order) => order.status = OrderStatus.pending);
-      
-      sortOrders();
-      
-      print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
-    } 
-    catch (e) 
-    {
-      _error = 'Ошибка загрузки заказов: ${e.toString()}';
-      print('❌ Ошибка при загрузке заказов: $e');
-      rethrow;
-    }
-  }
+	/*		// Создаем Future для параллельного выполнения
+			final futures = <Future<List<OrderInProduct>>>[
+				DataService.getOrdersForWorkplace(_currentWorkplace!.id, true),
+				if (_currentWorkplace!.previousWorkplace != null)
+				DataService.getOrdersForWorkplace(_currentWorkplace!.id, false),
+			];
 
-  void sortOrders() 
-  {
-    _currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
-    _pendingOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
-  }
+			// Выполняем параллельно
+			final results = await Future.wait(futures);
+			
+			// Текущие заказы (всегда первый результат)
+			_currentOrders = results[0];
+			//_currentOrders.forEach((order) => order.setStatusByWorkplace(_currentWorkplace!.id));
+			//_currentOrders = _currentOrders.where((order) => !order.operations.isCompleted).toList();
+			
+			// Ожидающие заказы (если есть второй результат)
+			_pendingOrders = results.length > 1 ? results[1] : [];
+			//_pendingOrders.forEach((order) => order.status = OrderStatus.pending);
+	*/
+			// Делаем один запрос, который возвращает все заказы с полем "workplaceOrderStatus"
+			final allOrders = await DataService.getAllOrdersForWorkplace(_currentWorkplace!.id);
+			
+			// Распределяем по спискам
+			_currentOrders = [];
+			_pendingOrders = [];
+			
+			for (var order in allOrders) 
+			{
+				// Проверяем поле workplaceOrderStatus
+				if (order.status == OrderStatus.inProgress) 
+				{
+					_currentOrders.add(order);
+				} 
+				else if (order.status == OrderStatus.pending) 
+				{
+					_pendingOrders.add(order);
+				}
+			}
 
-  void _useFallbackData(String workplaceId) async {
-    print('🔄 Использую fallback данные...');
+			
+			sortOrders();
+			
+			print('✅ Загружено: ${_currentOrders.length} текущих, ${_pendingOrders.length} ожидающих');
+		} 
+		catch (e) 
+		{
+			_error = 'Ошибка загрузки заказов: ${e.toString()}';
+			print('❌ Ошибка при загрузке заказов: $e');
+			rethrow;
+		}
+	}
 
-    // Используем DataService как fallback
-    _currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id);
+	void sortOrders() 
+	{
+		_currentOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
+		_pendingOrders.sort((a, b) => a.readyDate.compareTo(b.readyDate));
+	}
 
-    // Если есть предыдущее рабочее место, загружаем и его заказы
-    if (_currentWorkplace!.previousWorkplace != null) {
-      _pendingOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.previousWorkplace!);
-    } else {
-      _pendingOrders = [];
-    }
-  }
+	void _useFallbackData(String workplaceId) async {
+		print('🔄 Использую fallback данные...');
 
-  // Получить заказ по ID
-  OrderInProduct? getOrderById(String id) {
-    try {
-      return _currentOrders.firstWhere((order) => order.id == id);
-    } catch (_) {
-      try {
-        return _pendingOrders.firstWhere((order) => order.id == id);
-      } catch (_) {
-        return null;
-      }
-    }
-  }
+		// Используем DataService как fallback
+		_currentOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id, true);
 
-  // Взять заказ в работу (оптимистичное обновление)
-  Future<void> takeOrderToWork(OrderInProduct order, String userId) async {
-    if (_currentWorkplace == null) return;
+		// Если есть предыдущее рабочее место, загружаем и его заказы
+		if (_currentWorkplace!.previousWorkplace != null) {
+		_pendingOrders = await DataService.getOrdersForWorkplace(_currentWorkplace!.id, false);
+		} 
+		else 
+		{
+		_pendingOrders = [];
+		}
+	}
 
-    // Немедленно обновляем локально
-    final updatedOrder = order.copyWith(
-      status: OrderStatus.inProgress,
-      changeDate: DateTime.now(),
-      workplaceId: _currentWorkplace!.id,
-    );
+	// Получить заказ по ID
+	OrderInProduct? getOrderById(String id) {
+		try {
+		return _currentOrders.firstWhere((order) => order.id == id);
+		} catch (_) {
+		try {
+			return _pendingOrders.firstWhere((order) => order.id == id);
+		} catch (_) {
+			return null;
+		}
+		}
+	}
 
-    _updateOrderInLists(updatedOrder);
-    notifyListeners();
+	// Взять заказ в работу (оптимистичное обновление)
+	Future<void> takeOrderToWork(OrderInProduct order, String userId) async {
+		if (_currentWorkplace == null) return;
 
-    // Показываем уведомление
-    _showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
+		// Немедленно обновляем локально
+		final updatedOrder = order.copyWith(
+		status: OrderStatus.inProgress,
+		changeDate: DateTime.now(),
+		workplaceId: _currentWorkplace!.id,
+		);
 
-    // Отправляем на сервер в фоне
-    _sendUpdateToServer(order, OrderStatus.inProgress, userId);
-  }
+		_updateOrderInLists(updatedOrder);
+		notifyListeners();
 
-  // Завершить заказ (оптимистичное обновление)
-  Future<void> completeOrder(OrderInProduct order, String userId) async 
-  {
-    if (_currentWorkplace == null) return;
+		// Показываем уведомление
+		_showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
 
-    // Немедленно обновляем локально
-    final updatedOrder = order.copyWith(
-      status: OrderStatus.completed,
-      changeDate: DateTime.now(),
-    );
+		// Отправляем на сервер в фоне
+		_sendUpdateToServer(order, OrderStatus.inProgress, userId);
+	}
 
-    _updateOrderInLists(updatedOrder);
-    notifyListeners();
+	// Завершить заказ (оптимистичное обновление)
+	Future<void> completeOrder(OrderInProduct order, String userId) async 
+	{
+		if (_currentWorkplace == null) return;
 
-    // Показываем уведомление
-    _showSuccessNotification('Заказ ${order.orderNumber} завершен');
+		// Немедленно обновляем локально
+		final updatedOrder = order.copyWith(
+		status: OrderStatus.completed,
+		changeDate: DateTime.now(),
+		);
 
-    // Отправляем на сервер в фоне
-    _sendUpdateToServer(order, OrderStatus.completed, userId);
-  }
+		_updateOrderInLists(updatedOrder);
+		notifyListeners();
 
-  // Фоновая отправка на сервер
-  Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status, String? userId) async 
-  {
-    try 
-    {  
-      final response = await DataService.updateOrderStatus(
-        orderId: order.id,
-        workplaceId: _currentWorkplace!.id,
-        userId: userId,
-        status: status,
-        comment: 'Завершен на участке ${_currentWorkplace!.name}',
-      );
+		// Показываем уведомление
+		_showSuccessNotification('Заказ ${order.orderNumber} завершен');
 
-      if (response['success'] != true) {
-        print('⚠️ Сервер не подтвердил обновление, но данные обновлены локально');
-      }
-    } catch (e) {
-      print('⚠️ Ошибка фоновой синхронизации: $e');
-      // Можно добавить в очередь повторных попыток
-    }
-  }
+		// Отправляем на сервер в фоне
+		_sendUpdateToServer(order, OrderStatus.completed, userId);
+	}
 
-  // Вспомогательные методы для уведомлений
-  void _showSuccessNotification(String message) {
-    print('✅ $message');
-  }
+	// Фоновая отправка на сервер
+	Future<void> _sendUpdateToServer(OrderInProduct order, OrderStatus status, String? userId) async 
+	{
+		try 
+		{  
+		final response = await DataService.updateOrderStatus(
+			orderId: order.id,
+			workplaceId: _currentWorkplace!.id,
+			userId: userId,
+			status: status,
+			comment: 'Завершен на участке ${_currentWorkplace!.name}',
+		);
 
-  void _showErrorNotification(String message) {
-    print('❌ $message');
-  }
+		if (response['success'] != true) {
+			print('⚠️ Сервер не подтвердил обновление, но данные обновлены локально');
+		}
+		} catch (e) {
+		print('⚠️ Ошибка фоновой синхронизации: $e');
+		// Можно добавить в очередь повторных попыток
+		}
+	}
 
-  // Обновление заказов в списках
-  void _updateOrderInLists(OrderInProduct updatedOrder) 
-  {
-    // Удаляем из обоих списков
-    _currentOrders.removeWhere((order) => order.id == updatedOrder.id);
-    _pendingOrders.removeWhere((order) => order.id == updatedOrder.id);
+	// Вспомогательные методы для уведомлений
+	void _showSuccessNotification(String message) {
+		print('✅ $message');
+	}
 
-    // Добавляем в нужный список
-    if (updatedOrder.status == OrderStatus.inProgress &&
-        updatedOrder.workplaceId == _currentWorkplace?.id) 
-    {
-      _currentOrders.add(updatedOrder);
-    } 
-    else if (updatedOrder.status == OrderStatus.pending &&
-        updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace) 
-    {
-      _pendingOrders.add(updatedOrder);
-    }
+	void _showErrorNotification(String message) {
+		print('❌ $message');
+	}
 
-    // Сортируем
-    sortOrders();
+	// Обновление заказов в списках
+	void _updateOrderInLists(OrderInProduct updatedOrder) 
+	{
+		// Удаляем из обоих списков
+		_currentOrders.removeWhere((order) => order.id == updatedOrder.id);
+		_pendingOrders.removeWhere((order) => order.id == updatedOrder.id);
 
-    notifyListeners();
-  }
+		// Добавляем в нужный список
+		if (updatedOrder.status == OrderStatus.inProgress &&
+			updatedOrder.workplaceId == _currentWorkplace?.id) 
+		{
+		_currentOrders.add(updatedOrder);
+		} 
+		else if (updatedOrder.status == OrderStatus.pending &&
+			updatedOrder.workplaceId == _currentWorkplace?.previousWorkplace) 
+		{
+		_pendingOrders.add(updatedOrder);
+		}
 
-  // Ручное обновление
-  Future<void> refreshOrders() async {
-    _isLoading = true;
-    notifyListeners();
+		// Сортируем
+		sortOrders();
 
-    try {
-      await _loadOrdersParallel();
-      _error = null;
-    } catch (e) {
-      _error = 'Ошибка обновления: ${e.toString()}';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+		notifyListeners();
+	}
 
-  // Периодическое автообновление
-  void _startAutoRefresh() {
-    _refreshTimer?.cancel();
-    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
-      _loadOrdersParallel();
-      notifyListeners();
-    });
-  }
+	// Ручное обновление
+	Future<void> refreshOrders() async 
+	{
+		_isLoading = true;
+		notifyListeners();
 
-  // Остановить автообновление
-  void stopAutoRefresh() {
-    _refreshTimer?.cancel();
-    _refreshTimer = null;
-  }
+		try 
+		{
+			await _loadOrdersParallel();
+			_error = null;
+		} 
+		catch (e) 
+		{
+			_error = 'Ошибка обновления: ${e.toString()}';
+		} 
+		finally 
+		{
+			_isLoading = false;
+			notifyListeners();
+		}
+	}
 
-  // Сброс ошибки
-  void clearError() {
-    _error = null;
-    notifyListeners();
-  }
+		// Метод обновления с индикацией
+	Future<void> refreshOrdersWithFeedback() async 
+	{
+		if (_isRefreshing) return;  // защита от двойного нажатия
+		
+		_isRefreshing = true;
+		notifyListeners();
+		
+		try 
+		{
+			await refreshOrders();  // твой существующий метод
+		} 
+		finally 
+		{
+			_isRefreshing = false;
+			notifyListeners();
+		}
+	}
 
-  // Метод для смены рабочего участка
-  Future<void> changeWorkplace(String workplaceId) async 
-  {
-    _isLoading = true;
-    notifyListeners();
+	// Периодическое автообновление
+	void _startAutoRefresh() 
+	{
+		_refreshTimer?.cancel();
+		_refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) async
+		{
+			try
+			{
+				await _loadOrdersParallel();
+				notifyListeners();
+			}
+			catch (e)
+			{
+				print('⚠️ Ошибка автообновления: $e');
+			}
+		});
+	}
 
-    try 
-    {
-      // Останавливаем автообновление
-      stopAutoRefresh();
+	// Остановить автообновление
+	void stopAutoRefresh() {
+		_refreshTimer?.cancel();
+		_refreshTimer = null;
+	}
 
-      // Очищаем текущие данные
-      _currentOrders.clear();
-      _pendingOrders.clear();
-      _currentWorkplace = null;
+	// Сброс ошибки
+	void clearError() {
+		_error = null;
+		notifyListeners();
+	}
 
-      // Очищаем кэш перед сменой участка
-      DataService.clearCache();
+	// Метод для смены рабочего участка
+	Future<void> changeWorkplace(String workplaceId) async 
+	{
+		_isLoading = true;
+		notifyListeners();
 
-      // Инициализируем новый участок
-      await initialize(workplaceId);
-    } catch (e) {
-      _error = 'Ошибка смены участка: ${e.toString()}';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+		try 
+		{
+			// Останавливаем автообновление
+			stopAutoRefresh();
 
-  void clearData() {
-    _currentOrders.clear();
-    _pendingOrders.clear();
-    _currentWorkplace = null;
-    _isInitialized = false;
-    _isLoading = false;
-    _error = null;
-    
-    stopAutoRefresh();
-    
-    notifyListeners();
-    print('🗑️ OrdersProvider: данные очищены');
-  }
+			// Очищаем текущие данные
+			_currentOrders.clear();
+			_pendingOrders.clear();
+			_currentWorkplace = null;
 
-  Future<void> refreshAllOrders() async {
-    _isLoading = true;
-    notifyListeners();
+			// Очищаем кэш перед сменой участка
+			DataService.clearCache();
 
-    try 
-    {
-      await _loadOrdersParallel();
-      _error = null;
-    } 
-    catch (e) 
-    {
-      _error = 'Ошибка обновления: ${e.toString()}';
-    } 
-    finally 
-    {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+			// Инициализируем новый участок
+			await initialize(workplaceId);
+		} 
+		catch (e) 
+		{
+			_error = 'Ошибка смены участка: ${e.toString()}';
+		} 
+		finally 
+		{
+			_isLoading = false;
+			notifyListeners();
+		}
+	}
 
-  @override
-  void dispose() {
-    stopAutoRefresh();
-    super.dispose();
-  }
-}
+	void clearData() {
+		_currentOrders.clear();
+		_pendingOrders.clear();
+		_currentWorkplace = null;
+		_isInitialized = false;
+		_isLoading = false;
+		_error = null;
+		
+		stopAutoRefresh();
+		
+		notifyListeners();
+		print('🗑️ OrdersProvider: данные очищены');
+	}
+
+	@override
+	void dispose() {
+		stopAutoRefresh();
+		super.dispose();
+	}
+	}
