@@ -9,483 +9,524 @@ import '../models/user.dart';
 import '../models/workplace.dart';
 import '../utils/platform_utils.dart';
 
-class DataService {
-  static const String _baseUrl =
-      'https://script.google.com/macros/s/AKfycbzoDyvGU4ZHKg4oy1rGmxvxLTfnMATV21eYUzTFsj4pTxz3ii3sqw-i6fk5vElvrqBR-w/exec';
-  static final http.Client _client = http.Client();
+class DataService 
+{
+	static const String _baseUrl =
+		'https://script.google.com/macros/s/AKfycbzoDyvGU4ZHKg4oy1rGmxvxLTfnMATV21eYUzTFsj4pTxz3ii3sqw-i6fk5vElvrqBR-w/exec';
+	static final http.Client _client = http.Client();
 
-  // Таймауты для мобильных устройств
-  static const Duration _timeoutDuration = Duration(seconds: 30);
+	// Таймауты для мобильных устройств
+	static const Duration _timeoutDuration = Duration(seconds: 120);
 
-  // Кэшированные данные
-  static List<Workplace>? _cachedWorkplaces;
-  static DateTime? _lastWorkplaceCache;
-  static final Map<String, List<OrderInProduct>> _ordersCache = {};
-  static final Map<String, DateTime> _cacheTimestamps = {};
-  static const Duration _cacheDuration = Duration(minutes: 5);
+	// Кэшированные данные
+	static List<Workplace>? _cachedWorkplaces;
+	static DateTime? _lastWorkplaceCache;
+	static final Map<String, List<OrderInProduct>> _ordersCache = {};
+	static final Map<String, DateTime> _cacheTimestamps = {};
+	static const Duration _cacheDuration = Duration(minutes: 5);
 
-  // Очистка кэша
-  static void clearCache() {
-    _cachedWorkplaces = null;
-    _lastWorkplaceCache = null;
-    _ordersCache.clear();
-    _cacheTimestamps.clear();
-    print('🧹 Кэш DataService очищен');
-  }
+	// Очистка кэша
+	static void clearCache() {
+		_cachedWorkplaces = null;
+		_lastWorkplaceCache = null;
+		_ordersCache.clear();
+		_cacheTimestamps.clear();
+		print('🧹 Кэш DataService очищен');
+	}
 
-  // Получение рабочих мест
-  static Future<List<Workplace>> getWorkplaces() async 
-  {
-    final now = DateTime.now();
+	// Получение рабочих мест
+	static Future<List<Workplace>> getWorkplaces() async 
+	{
+		final now = DateTime.now();
 
-    // Проверяем кэш (5 минут)
-    if (_cachedWorkplaces != null &&
-        _lastWorkplaceCache != null &&
-        now.difference(_lastWorkplaceCache!) < _cacheDuration) {
-      print('📦 Используем кэшированные рабочие места (${_cachedWorkplaces!.length})');
-      return _cachedWorkplaces!;
-    }
+		// Проверяем кэш (5 минут)
+		if (_cachedWorkplaces != null &&
+			_lastWorkplaceCache != null &&
+			now.difference(_lastWorkplaceCache!) < _cacheDuration) {
+		print('📦 Используем кэшированные рабочие места (${_cachedWorkplaces!.length})');
+		return _cachedWorkplaces!;
+		}
 
-    print('🚀 GAS запрос: getWorkplaces');
+		print('🚀 GAS запрос: getWorkplaces');
 
-    try 
-    {
-      final response = await _callGAS('getWorkplaces');
-      /*final response = await http
-          .get(
-            Uri.parse('$_baseUrl?action=getWorkplaces'),
-          )
-          .timeout(_timeoutDuration);*/
+		try 
+		{
+		final response = await _callGAS('getWorkplaces');
+		/*final response = await http
+			.get(
+				Uri.parse('$_baseUrl?action=getWorkplaces'),
+			)
+			.timeout(_timeoutDuration);*/
 
-      print('✅ Ответ получен, статус: ${response.statusCode}');
+		print('✅ Ответ получен, статус: ${response.statusCode}');
 
-      //if (response.statusCode == 200) 
-      //{
-        final workplaces = await compute(_parseWorkplacesResponse, response.body);
+		//if (response.statusCode == 200) 
+		//{
+			final workplaces = await compute(_parseWorkplacesResponse, response.body);
 
-        // Сохраняем в кэш
-        _cachedWorkplaces = workplaces;
-        _lastWorkplaceCache = now;
+			// Сохраняем в кэш
+			_cachedWorkplaces = workplaces;
+			_lastWorkplaceCache = now;
 
-        print('✅ Загружено рабочих мест: ${workplaces.length}');
-        return workplaces;
-      /*} 
-      else 
-      {
-        // При ошибке возвращаем кэш, если есть
-        if (_cachedWorkplaces != null) {
-          print('⚠️ Используем устаревшие данные из кэша');
-          return _cachedWorkplaces!;
-        }
-        throw Exception('HTTP ${response.statusCode}');
-      }*/
-    } 
-    on TimeoutException catch (e) 
-    {
-      print('⏰ Таймаут запроса: $e');
-      return _cachedWorkplaces ?? [];
-    } 
-    on SocketException catch (e) 
-    {
-      print('📡 Ошибка сети: $e');
-      return _cachedWorkplaces ?? [];
-    } 
-    catch (e) 
-    {
-      print('❌ Ошибка в getWorkplaces: $e');
-      return _cachedWorkplaces ?? [];
-    }
+			print('✅ Загружено рабочих мест: ${workplaces.length}');
+			return workplaces;
+		/*} 
+		else 
+		{
+			// При ошибке возвращаем кэш, если есть
+			if (_cachedWorkplaces != null) {
+			print('⚠️ Используем устаревшие данные из кэша');
+			return _cachedWorkplaces!;
+			}
+			throw Exception('HTTP ${response.statusCode}');
+		}*/
+		} 
+		on TimeoutException catch (e) 
+		{
+		print('⏰ Таймаут запроса: $e');
+		return _cachedWorkplaces ?? [];
+		} 
+		on SocketException catch (e) 
+		{
+		print('📡 Ошибка сети: $e');
+		return _cachedWorkplaces ?? [];
+		} 
+		catch (e) 
+		{
+		print('❌ Ошибка в getWorkplaces: $e');
+		return _cachedWorkplaces ?? [];
+		}
 
-  }
+	}
 
-  static List<Workplace> _parseWorkplacesResponse(String responseBody) {
-    try {
-      final List<dynamic> jsonList = jsonDecode(responseBody);
-      final workplaces = <Workplace>[];
+	static List<Workplace> _parseWorkplacesResponse(String responseBody) {
+		try {
+		final List<dynamic> jsonList = jsonDecode(responseBody);
+		final workplaces = <Workplace>[];
 
-      for (int i = 0; i < jsonList.length; i++) {
-        try {
-          final item = jsonList[i] as Map<String, dynamic>;
-          final workplace = Workplace.fromJson(item);
-          workplaces.add(workplace);
-        } catch (e) {
-          print('   ⚠️ Ошибка парсинга элемента $i: $e');
-        }
-      }
+		for (int i = 0; i < jsonList.length; i++) {
+			try {
+			final item = jsonList[i] as Map<String, dynamic>;
+			final workplace = Workplace.fromJson(item);
+			workplaces.add(workplace);
+			} catch (e) {
+			print('   ⚠️ Ошибка парсинга элемента $i: $e');
+			}
+		}
 
-      return workplaces;
-    } catch (e) {
-      print('❌ Ошибка парсинга JSON: $e');
-      return [];
-    }
-  }
+		return workplaces;
+		} catch (e) {
+		print('❌ Ошибка парсинга JSON: $e');
+		return [];
+		}
+	}
 
-  // Получение заказов для участка
-  static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId, [byLogs = false]) async 
-  {
-    final now = DateTime.now();
+	// Получение заказов для участка
+	static Future<List<OrderInProduct>> getOrdersForWorkplace(String workplaceId, [active = false]) async 
+	{
+		final now = DateTime.now();
 
-    // Проверяем кэш
-    /*if (_ordersCache.containsKey(workplaceId) &&
-        _cacheTimestamps.containsKey(workplaceId) &&
-        now.difference(_cacheTimestamps[workplaceId]!) < _cacheDuration) {
-      print('📦 Используем кэшированные заказы для участка $workplaceId');
-      return _ordersCache[workplaceId]!;
-    }*/
+		// Проверяем кэш
+		/*if (_ordersCache.containsKey(workplaceId) &&
+			_cacheTimestamps.containsKey(workplaceId) &&
+			now.difference(_cacheTimestamps[workplaceId]!) < _cacheDuration) {
+		print('📦 Используем кэшированные заказы для участка $workplaceId');
+		return _ordersCache[workplaceId]!;
+		}*/
 
-    try 
-    {
-      print('📥 Загрузка заказов для участка $workplaceId');
+		try 
+		{
+		print('📥 Загрузка заказов для участка $workplaceId');
 
-      final action = byLogs ? 'getOrdersByWorkplaceLogs' : 'getOrdersByWorkplace';
+		final action = active ? 'getActiveOrdersByWorkplace' : 'getPendingOrdersByWorkplace';
 
-      final response = await _callGAS(action, params: {'workplaceId': workplaceId});
-      /*final response = await http
-          .get(
-            //Uri.parse('$_baseUrl?action=getOrdersByWorkplace&workplaceId=$workplaceId'),
-            Uri.parse('$_baseUrl?action=$action&workplaceId=$workplaceId'),
-          )
-          .timeout(_timeoutDuration);*/
+		final response = await _callGAS(action, params: {'workplaceId': workplaceId});
+			// Используем compute для парсинга в фоне
+			final orders = await compute(_parseOrdersResponse, response.body);
 
-      //if (response.statusCode == 200) 
-      //{
-        // Используем compute для парсинга в фоне
-        final orders = await compute(_parseOrdersResponse, response.body);
+			// Сохраняем в кэш
+			_ordersCache[workplaceId] = orders;
+			_cacheTimestamps[workplaceId] = now;
 
-        // Сохраняем в кэш
-        _ordersCache[workplaceId] = orders;
-        _cacheTimestamps[workplaceId] = now;
-
-        print('✅ Заказов загружено: ${orders.length}');
-        return orders;
-      /*} else {
-        throw Exception('HTTP ${response.statusCode}');
-      }*/
-    } 
-    on TimeoutException catch (e) 
-    {
-      print('⏰ Таймаут запроса: $e');
-      return _ordersCache[workplaceId] ?? [];
-    } 
-    on SocketException catch (e) 
-    {
-      print('📡 Ошибка сети: $e');
-      return _ordersCache[workplaceId] ?? [];
-    } 
-    catch (e) 
-    {
-      print('❌ Ошибка в getOrdersByWorkplace: $e');
-      return _ordersCache[workplaceId] ?? [];
-    }
+			print('✅ Заказов загружено: ${orders.length}');
+			return orders;
+		/*} else {
+			throw Exception('HTTP ${response.statusCode}');
+		}*/
+		} 
+		on TimeoutException catch (e) 
+		{
+		print('⏰ Таймаут запроса: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		} 
+		on SocketException catch (e) 
+		{
+		print('📡 Ошибка сети: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		} 
+		catch (e) 
+		{
+		print('❌ Ошибка в getOrdersByWorkplace: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		}
 
 
-  }
+	}
 
-  // Парсинг заказов в фоне
-  static List<OrderInProduct> _parseOrdersResponse(String responseBody) {
-    try {
-      final List<dynamic> jsonList = jsonDecode(responseBody);
-      final orders = <OrderInProduct>[];
+	// Получение всех заказов для участка
+	static Future<List<OrderInProduct>> getAllOrdersForWorkplace(String workplaceId) async 
+	{
+		final now = DateTime.now();
 
-      for (int i = 0; i < jsonList.length; i++) {
-        try {
-          final item = jsonList[i] as Map<String, dynamic>;
-          final order = OrderInProduct.fromJson(item);
-          orders.add(order);
-        } catch (e) {
-          print('   ⚠️ Ошибка парсинга элемента $i: $e');
-        }
-      }
+		// Проверяем кэш
+		/*if (_ordersCache.containsKey(workplaceId) &&
+			_cacheTimestamps.containsKey(workplaceId) &&
+			now.difference(_cacheTimestamps[workplaceId]!) < _cacheDuration) {
+		print('📦 Используем кэшированные заказы для участка $workplaceId');
+		return _ordersCache[workplaceId]!;
+		}*/
 
-      return orders;
-    } catch (e) {
-      print('❌ Ошибка парсинга JSON: $e');
-      return [];
-    }
-  }
+		try 
+		{
+		print('📥 Загрузка заказов для участка $workplaceId');
 
-  // Параллельная загрузка заказов для нескольких участков
-  static Future<Map<String, List<OrderInProduct>>> getOrdersForMultipleWorkplaces(List<String> workplaceIds) async 
-  {
-    try 
-    {
-      print('🚀 Параллельная загрузка заказов для ${workplaceIds.length} участков');
+		final action = 'getActiveAndPendingOrdersByWorkplace';
 
-      final stopwatch = Stopwatch()..start();
+		final response = await _callGAS(action, params: {'workplaceId': workplaceId});
+			// Используем compute для парсинга в фоне
+			final orders = await compute(_parseOrdersResponse, response.body);
 
-      // Создаем список Future для каждого участка
-      final List<Future<List<OrderInProduct>>> futures = [];
-      for (final workplaceId in workplaceIds) 
-      {
-        futures.add(getOrdersForWorkplace(workplaceId));
-      }
+			// Сохраняем в кэш
+			_ordersCache[workplaceId] = orders;
+			_cacheTimestamps[workplaceId] = now;
 
-      // Загружаем параллельно
-      final List<List<OrderInProduct>> results = await Future.wait(futures);
+			print('✅ Заказов загружено: ${orders.length}');
+			return orders;
+		} 
+		on TimeoutException catch (e) 
+		{
+		print('⏰ Таймаут запроса: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		} 
+		on SocketException catch (e) 
+		{
+		print('📡 Ошибка сети: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		} 
+		catch (e) 
+		{
+		print('❌ Ошибка в getOrdersByWorkplace: $e');
+		return [];//_ordersCache[workplaceId] ?? [];
+		}
 
-      // Собираем результат в Map
-      final Map<String, List<OrderInProduct>> resultMap = {};
-      for (int i = 0; i < workplaceIds.length; i++) {
-        resultMap[workplaceIds[i]] = results[i];
-      }
 
-      print('✅ Всего заказов загружено ${resultMap.length}');
+	}
 
-      stopwatch.stop();
-      print('✅ Параллельная загрузка завершена за ${stopwatch.elapsedMilliseconds}ms');
+	// Парсинг заказов в фоне
+	static List<OrderInProduct> _parseOrdersResponse(String responseBody) {
+		try {
+		final List<dynamic> jsonList = jsonDecode(responseBody);
+		final orders = <OrderInProduct>[];
 
-      return resultMap;
-    } catch (e) {
-      print('❌ Ошибка параллельной загрузки: $e');
-      rethrow;
-    }
-  }
+		for (int i = 0; i < jsonList.length; i++) {
+			try {
+			final item = jsonList[i] as Map<String, dynamic>;
+			final order = OrderInProduct.fromJson(item);
+			orders.add(order);
+			} catch (e) {
+			print('   ⚠️ Ошибка парсинга элемента $i: $e');
+			}
+		}
 
-  static Future<User?> getUserByEmail(String email) async 
-  {
-    try 
-    {
-      final response = await _callGAS('getUserByEmail', params: {'email': email});
+		return orders;
+		} catch (e) {
+		print('❌ Ошибка парсинга JSON: $e');
+		return [];
+		}
+	}
 
-      return _parseUserResponse(response.body);
-      /*final response = await http.get(
-        Uri.parse('$_baseUrl?action=getUserByEmail&email=$email'),
-      ).timeout(_timeoutDuration);
+	// Параллельная загрузка заказов для нескольких участков
+	static Future<Map<String, List<OrderInProduct>>> getOrdersForMultipleWorkplaces(List<String> workplaceIds) async 
+	{
+		try 
+		{
+		print('🚀 Параллельная загрузка заказов для ${workplaceIds.length} участков');
 
-      if (response.statusCode == 200) 
-      {
-        return _parseUserResponse(response.body);
-      } 
-      else 
-      {
-        throw Exception('HTTP ${response.statusCode}');
-      }*/
-    } catch (e) {
-      print('❌ Ошибка в getUserByEmail: $e');
-      rethrow;
-    }
-  }
+		final stopwatch = Stopwatch()..start();
 
-  static User? _parseUserResponse(String responseBody) {
-    try {
-      final List<dynamic> jsonList = jsonDecode(responseBody);
+		// Создаем список Future для каждого участка
+		final List<Future<List<OrderInProduct>>> futures = [];
+		for (final workplaceId in workplaceIds) 
+		{
+			futures.add(getOrdersForWorkplace(workplaceId));
+		}
 
-      for (int i = 0; i < jsonList.length; i++) {
-        try {
-          final item = jsonList[i] as Map<String, dynamic>;
-          return User.fromJson(item);
-        } catch (e) {
-          print('   ⚠️ Ошибка парсинга элемента $i: $e');
-        }
-      }
+		// Загружаем параллельно
+		final List<List<OrderInProduct>> results = await Future.wait(futures);
 
-      return null;
-    } catch (e) {
-      print('❌ Ошибка парсинга JSON: $e');
-      return null;
-    }
-  }
+		// Собираем результат в Map
+		final Map<String, List<OrderInProduct>> resultMap = {};
+		for (int i = 0; i < workplaceIds.length; i++) {
+			resultMap[workplaceIds[i]] = results[i];
+		}
 
-  static Future<List<Workplace>> getUserWorkplaces(String userId) async 
-  {
-    try 
-    {
-      final response = await _callGAS('getUserWorkplaces', params: {'userId': userId});
+		print('✅ Всего заказов загружено ${resultMap.length}');
 
-      return _parseUserWorkplacesResponse(response.body);
-      /*final response = await http.get(
-        Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
-      ).timeout(_timeoutDuration);
+		stopwatch.stop();
+		print('✅ Параллельная загрузка завершена за ${stopwatch.elapsedMilliseconds}ms');
 
-      if (response.statusCode == 200) {
-        return _parseUserWorkplacesResponse(response.body);
-      } else {
-        throw Exception('HTTP ${response.statusCode}');
-      }*/
-    } 
-    catch (e) 
-    {
-      print('❌ Ошибка в getUserWorkplaces: $e');
-      rethrow;
-    }
-  }
+		return resultMap;
+		} catch (e) {
+		print('❌ Ошибка параллельной загрузки: $e');
+		rethrow;
+		}
+	}
 
-  static List<Workplace> _parseUserWorkplacesResponse(String responseBody) {
-    try {
-      final List<dynamic> jsonList = jsonDecode(responseBody);
-      final workplaces = <Workplace>[];
+	static Future<User?> getUserByEmail(String email) async 
+	{
+		try 
+		{
+		final response = await _callGAS('getUserByEmail', params: {'email': email});
 
-      for (int i = 0; i < jsonList.length; i++) {
-        try {
-          final item = jsonList[i] as Map<String, dynamic>;
-          final workplace = Workplace.fromJson(item);
-          workplaces.add(workplace);
-        } catch (e) {
-          print('   ⚠️ Ошибка парсинга элемента $i: $e');
-        }
-      }
+		return _parseUserResponse(response.body);
+		/*final response = await http.get(
+			Uri.parse('$_baseUrl?action=getUserByEmail&email=$email'),
+		).timeout(_timeoutDuration);
 
-      return workplaces;
-    } catch (e) {
-      print('❌ Ошибка парсинга JSON: $e');
-      return [];
-    }
-  }
+		if (response.statusCode == 200) 
+		{
+			return _parseUserResponse(response.body);
+		} 
+		else 
+		{
+			throw Exception('HTTP ${response.statusCode}');
+		}*/
+		} catch (e) {
+		print('❌ Ошибка в getUserByEmail: $e');
+		rethrow;
+		}
+	}
 
-  // Обновление статуса заказа (оптимизированное)
-  static Future<Map<String, dynamic>> updateOrderStatus({
-    required String orderId,
-    required String workplaceId,
-    required String? userId,
-    required OrderStatus status,
-    String comment = '',
-  }) async {
-    try {
-      print('📤 Отправка обновления заказа:');
-      print('   ID: $orderId');
-      print('   Workplace: $workplaceId');
-      print('   Status: ${status.name}');
+	static User? _parseUserResponse(String responseBody) {
+		try {
+		final List<dynamic> jsonList = jsonDecode(responseBody);
 
-      final client = http.Client();
-      //client.maxRedirects = 5; // Разрешаем редиректы
+		for (int i = 0; i < jsonList.length; i++) {
+			try {
+			final item = jsonList[i] as Map<String, dynamic>;
+			return User.fromJson(item);
+			} catch (e) {
+			print('   ⚠️ Ошибка парсинга элемента $i: $e');
+			}
+		}
 
-      final action = status == OrderStatus.completed ? 'completeOrderWorkplace' : 'updateOrderWorkplace';
+		return null;
+		} catch (e) {
+		print('❌ Ошибка парсинга JSON: $e');
+		return null;
+		}
+	}
 
-      try 
-      {
-        final response = await client
-            .post(
-              Uri.parse(_baseUrl),
-              headers: {'Content-Type': 'text/plain;charset=utf-8'},
-              body: json.encode({
-                'action': action,
-                'payload': {
-                  'orderInProductId': orderId,
-                  'workplaceId': workplaceId,
-                  'userId': userId,
-                  'status': status.name,
-                  'source': '${PlatformUtils.platform} API',  // источник
-                },
-              }),
-            )
-            .timeout(const Duration(seconds: 20));
+	static Future<List<Workplace>> getUserWorkplaces(String userId) async 
+	{
+		try 
+		{
+		final response = await _callGAS('getUserWorkplaces', params: {'userId': userId});
 
-        print('📥 Ответ сервера: ${response.statusCode}');
+		return _parseUserWorkplacesResponse(response.body);
+		/*final response = await http.get(
+			Uri.parse('$_baseUrl?action=getUserWorkplaces&userId=$userId'),
+		).timeout(_timeoutDuration);
 
-        // Если 302 или 200 - считаем успехом
-        if (response.statusCode == 200 || response.statusCode == 302) {
-          print('✅ Заказ обновлен на сервере');
-          return {'success': true, 'message': 'OK'};
-        }
+		if (response.statusCode == 200) {
+			return _parseUserWorkplacesResponse(response.body);
+		} else {
+			throw Exception('HTTP ${response.statusCode}');
+		}*/
+		} 
+		catch (e) 
+		{
+		print('❌ Ошибка в getUserWorkplaces: $e');
+		rethrow;
+		}
+	}
 
-        return {'success': false, 'message': 'HTTP ${response.statusCode}'};
-      } finally {
-        client.close();
-      }
-    } catch (e) {
-      print('⚠️ Ошибка сети, но продолжаем работу: $e');
-      // Для пилота - возвращаем успех даже при ошибке
-      return {'success': true, 'message': 'Обновлено локально'};
-    }
-  }
+	static List<Workplace> _parseUserWorkplacesResponse(String responseBody) {
+		try {
+		final List<dynamic> jsonList = jsonDecode(responseBody);
+		final workplaces = <Workplace>[];
 
-  // Универсальный метод для всех запросов
-  static Future<http.Response> _callGAS(String action, {Map<String, dynamic>? params}) async 
-  {
-      if(PlatformUtils.isWeb)
-      {
-        return _postGAS(action, params: params);
-      }
-      else
-      {
-        return _getGAS(action, params: params);
-      }
-  }
-  
-  static Future<http.Response> _postGAS(String action, {Map<String, dynamic>? params}) async 
-  {
-    final client = http.Client();
+		for (int i = 0; i < jsonList.length; i++) {
+			try {
+			final item = jsonList[i] as Map<String, dynamic>;
+			final workplace = Workplace.fromJson(item);
+			workplaces.add(workplace);
+			} catch (e) {
+			print('   ⚠️ Ошибка парсинга элемента $i: $e');
+			}
+		}
 
-    try
-    {
-        /*final response = await client
-            .post(
-            Uri.parse(_baseUrl),
-            headers: {'Content-Type': 'text/plain;charset=utf-8'},
-            body: json.encode({
-                    'action': action,
-                    'params': params ?? {},
-                  }),
-            ).timeout(_timeoutDuration);*/
+		return workplaces;
+		} catch (e) {
+		print('❌ Ошибка парсинга JSON: $e');
+		return [];
+		}
+	}
 
-        final response = await http
-            .post(
-            Uri.parse(_baseUrl),
-            headers: {'Content-Type': 'text/plain;charset=utf-8'},
-            body: json.encode({
-                    'action': action,
-                    'params': params ?? {},
-                  }),
-            ).timeout(_timeoutDuration);
+	// Обновление статуса заказа (оптимизированное)
+	static Future<Map<String, dynamic>> updateOrderStatus({
+		required String orderId,
+		required String workplaceId,
+		required String? userId,
+		required OrderStatus status,
+		String comment = '',
+	}) async {
+		try {
+		print('📤 Отправка обновления заказа:');
+		print('   ID: $orderId');
+		print('   Workplace: $workplaceId');
+		print('   Status: ${status.name}');
 
-        print('📥 Ответ сервера: ${response.statusCode}');
+		final client = http.Client();
+		//client.maxRedirects = 5; // Разрешаем редиректы
 
-        if (response.statusCode == 200) 
-        {
-          return response;
-        } 
-        else 
-        {
-          throw Exception('HTTP ${response.statusCode}');
-        }
-    }
-    finally
-    {
-        client.close();
-    }
-  }
+		final action = status == OrderStatus.completed ? 'completeOrderWorkplace' : 'updateOrderWorkplace';
 
-  static Future<http.Response> _getGAS(String action, {Map<String, dynamic>? params}) async 
-  {
-    try
-    {
-        // Начинаем с action
-        String queryString = 'action=$action';
-        
-        // Добавляем все параметры
-        if (params != null) {
-          params.forEach((key, value) {
-            // URL-кодируем ключи и значения
-            final encodedKey = Uri.encodeQueryComponent(key);
-            final encodedValue = Uri.encodeQueryComponent(value.toString());
-            queryString += '&$encodedKey=$encodedValue';
-          });
-        }
-        
-        // Формируем полный URL
-        final Uri uri = Uri.parse('$_baseUrl?$queryString');
-        
-        print('📤 GET запрос: $uri');
-        
-        final response = await http
-            .get(uri)
-            .timeout(_timeoutDuration);
-        
-        print('📥 Ответ сервера: ${response.statusCode}');
-        
-        if (response.statusCode == 200) 
-        {
-          return response;
-        } 
-        else 
-        {
-          throw Exception('HTTP ${response.statusCode}');
-        }
-      }
-      catch (e)
-      {
-        print('❌ Ошибка в _getGAS: $e');
-        rethrow;
-      }
-  }
+		try 
+		{
+			final response = await client
+				.post(
+				Uri.parse(_baseUrl),
+				headers: {'Content-Type': 'text/plain;charset=utf-8'},
+				body: json.encode({
+					'action': action,
+					'payload': {
+					'orderInProductId': orderId,
+					'workplaceId': workplaceId,
+					'userId': userId,
+					'status': status.name,
+					'source': '${PlatformUtils.platform} API',  // источник
+					},
+				}),
+				)
+				.timeout(const Duration(seconds: 20));
+
+			print('📥 Ответ сервера: ${response.statusCode}');
+
+			// Если 302 или 200 - считаем успехом
+			if (response.statusCode == 200 || response.statusCode == 302) {
+			print('✅ Заказ обновлен на сервере');
+			return {'success': true, 'message': 'OK'};
+			}
+
+			return {'success': false, 'message': 'HTTP ${response.statusCode}'};
+		} finally {
+			client.close();
+		}
+		} catch (e) {
+		print('⚠️ Ошибка сети, но продолжаем работу: $e');
+		// Для пилота - возвращаем успех даже при ошибке
+		return {'success': true, 'message': 'Обновлено локально'};
+		}
+	}
+
+	// Универсальный метод для всех запросов
+	static Future<http.Response> _callGAS(String action, {Map<String, dynamic>? params}) async 
+	{
+		if(PlatformUtils.isWeb)
+		{
+			return _postGAS(action, params: params);
+		}
+		else
+		{
+			return _getGAS(action, params: params);
+		}
+	}
+	
+	static Future<http.Response> _postGAS(String action, {Map<String, dynamic>? params}) async 
+	{
+		final client = http.Client();
+
+		try
+		{
+			/*final response = await client
+				.post(
+				Uri.parse(_baseUrl),
+				headers: {'Content-Type': 'text/plain;charset=utf-8'},
+				body: json.encode({
+						'action': action,
+						'params': params ?? {},
+					}),
+				).timeout(_timeoutDuration);*/
+
+			final response = await http
+				.post(
+				Uri.parse(_baseUrl),
+				headers: {'Content-Type': 'text/plain;charset=utf-8'},
+				body: json.encode({
+						'action': action,
+						'params': params ?? {},
+					}),
+				).timeout(_timeoutDuration);
+
+			print('📥 Ответ сервера: ${response.statusCode}');
+
+			if (response.statusCode == 200) 
+			{
+			return response;
+			} 
+			else 
+			{
+			throw Exception('HTTP ${response.statusCode}');
+			}
+		}
+		finally
+		{
+			client.close();
+		}
+	}
+
+	static Future<http.Response> _getGAS(String action, {Map<String, dynamic>? params}) async 
+	{
+		try
+		{
+			// Начинаем с action
+			String queryString = 'action=$action';
+			
+			// Добавляем все параметры
+			if (params != null) {
+			params.forEach((key, value) {
+				// URL-кодируем ключи и значения
+				final encodedKey = Uri.encodeQueryComponent(key);
+				final encodedValue = Uri.encodeQueryComponent(value.toString());
+				queryString += '&$encodedKey=$encodedValue';
+			});
+			}
+			
+			// Формируем полный URL
+			final Uri uri = Uri.parse('$_baseUrl?$queryString');
+			
+			print('📤 GET запрос: $uri');
+			
+			final response = await http
+				.get(uri)
+				.timeout(_timeoutDuration);
+			
+			print('📥 Ответ сервера: ${response.statusCode}');
+			
+			if (response.statusCode == 200) 
+			{
+			return response;
+			} 
+			else 
+			{
+			throw Exception('HTTP ${response.statusCode}');
+			}
+		}
+		catch (e)
+		{
+			print('❌ Ошибка в _getGAS: $e');
+			rethrow;
+		}
+	}
 }

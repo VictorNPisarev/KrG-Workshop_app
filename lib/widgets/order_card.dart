@@ -77,6 +77,9 @@ class OrderCard extends StatelessWidget
             case OrderStatus.completed:
                 chipColor = Colors.green;
                 break;
+            case OrderStatus.notDefined:
+                chipColor = Colors.grey;
+                break;
         }
         
         return Chip(

@@ -146,6 +146,8 @@ class OrderTableWidget extends StatelessWidget {
         return Colors.blue;
       case OrderStatus.completed:
         return Colors.green;
+      case OrderStatus.notDefined:
+        return Colors.grey;
     }
   }
 }
