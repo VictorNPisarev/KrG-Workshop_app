@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:workshop_app/models/order_in_product.dart';
 
+import '../models/workplace_status.dart';
+
 class OrderCard extends StatelessWidget
 {
     final OrderInProduct orderInProduct;

@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_in_product.dart';
+import '../models/order_trace.dart';
 import '../models/user.dart';
 import '../models/workplace.dart';
+import '../models/workplace_status.dart';
 import '../utils/platform_utils.dart';
 
 class DataService 
@@ -527,6 +529,33 @@ class DataService
 		{
 			print('❌ Ошибка в _getGAS: $e');
 			rethrow;
+		}
+	}
+
+	static Future<List<OrderTrace>> getOrderTrace(String orderNumber) async 
+	{
+		try 
+		{
+			print('🔍 Поиск заказа: $orderNumber');
+			
+			final response = await _callGAS('getOrderTrace', params: {'orderNumber': orderNumber});
+			
+			if (response.statusCode == 200) 
+			{
+				final data = jsonDecode(response.body);
+				final orders = data['orders'] as List;
+				
+				return orders.map((o) => OrderTrace.fromJson(o)).toList();
+			} 
+			else 
+			{
+				throw Exception('HTTP ${response.statusCode}');
+			}
+		} 
+		catch (e) 
+		{
+			print('❌ Ошибка поиска заказа: $e');
+			return [];
 		}
 	}
 }

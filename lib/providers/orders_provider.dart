@@ -2,6 +2,7 @@
 	import 'package:flutter/foundation.dart';
 	import 'package:flutter/material.dart';
 	import '../models/order_in_product.dart';
+import '../models/workplace_status.dart';
 	import '../models/workplace.dart';
 	import '../services/data_service.dart';
 	import '../utils/network_utils.dart';
