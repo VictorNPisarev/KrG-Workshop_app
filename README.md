@@ -25,7 +25,7 @@ samples, guidance on mobile development, and a full API reference.
 ## ЗАПУСК СЕРВЕРА
 **Установить Node.js (если нет)** choco install nodejs -y
 **Открыть порт в брандмауэре (один раз)** New-NetFirewallRule -DisplayName "Workshop App" -Direction Inbound -LocalPort 3030 -Protocol TCP -Action Allow
-**Запустить сервер node.js**  npx http-server -p 3030 --host 0.0.0.0   //***запустить из папки со сборкой*** cd build/web
+**Запустить сервер node.js**  npx http-server -p 3031 --host 0.0.0.0   //***запустить из папки со сборкой*** cd build/web
 
 ## ЗАПУСК СЕРВЕРА IIS
 ### Шаг 1: Включить IIS в Windows
