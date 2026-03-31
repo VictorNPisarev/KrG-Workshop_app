@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/order_in_product.dart';
+import '../models/workplace_status.dart';
 
 class OrderTableWidget extends StatelessWidget {
   final List<OrderInProduct> orders;

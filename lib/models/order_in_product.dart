@@ -1,5 +1,7 @@
 	import 'package:flutter/material.dart';
 
+import 'workplace_status.dart';
+
 class OrderInProduct
 	{
 		final String id;
@@ -81,7 +83,7 @@ class OrderInProduct
 			}*/
 
 			// Определяем статус на основе операций
-			OrderStatus determineStatus(String serverStatus) 
+			/*OrderStatus determineStatus(String serverStatus) 
 			{
 				// Если заказ начат по операциям
 				if (serverStatus == 'active') 
@@ -97,9 +99,9 @@ class OrderInProduct
 				{
 					return OrderStatus.notDefined;
 				}
-			}
+			}*/
 
-			final status = determineStatus(json['workplaceOrderStatus']);
+			final status = WorkplaceStatus.determineStatus(json['workplaceOrderStatus']);
 
 			// Оптимизация 1: Используем локальные переменные для часто используемых полей
 			final rowId = json['Row ID'];
@@ -248,19 +250,6 @@ class OrderInProduct
 		return operations.isStarted && !operations.isCompleted;
 		}*/
 
-	}
-
-	// Перечисление статусов заказа
-	enum OrderStatus
-	{
-		pending('Ожидает'),
-		inProgress('В работе'),
-		completed('Завершен'),
-		notDefined('Не определен');
-		
-		final String displayName;
-		
-		const OrderStatus(this.displayName);
 	}
 
 	// ДОБАВИМ НОВЫЙ КЛАСС ДЛЯ ОПЕРАЦИЙ
