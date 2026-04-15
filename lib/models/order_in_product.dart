@@ -1,5 +1,6 @@
-	import 'package:flutter/material.dart';
-
+import 'package:flutter/material.dart';
+import 'package:workshop_app/utils/type_converter.dart';
+import '../extensions/dynamic_extension.dart';
 import 'workplace_status.dart';
 
 class OrderInProduct
@@ -54,58 +55,11 @@ class OrderInProduct
 		
 		factory OrderInProduct.fromJson(Map<String, dynamic> json)
 		{
-			/*// Парсим операции
-			final operationsJson = json['operations'] ?? {};
-			final orderOperations = OrderOperations.fromJson(
-			operationsJson is Map<String, dynamic> 
-				? operationsJson 
-				: {}
-			);
-			
-			// Определяем статус на основе операций
-			OrderStatus determineStatus(Map<String, dynamic> json, OrderOperations ops) 
-			{
-			// Если заказ завершен по операциям
-			if (ops.isCompleted) 
-			{
-				return OrderStatus.completed;
-			}
-			// Если заказ начат по операциям
-			else if (ops.isStarted) 
-			{
-				return OrderStatus.inProgress;
-			}
-			// Иначе ожидает
-			else 
-			{
-				return OrderStatus.pending;
-			}
-			}*/
-
-			// Определяем статус на основе операций
-			/*OrderStatus determineStatus(String serverStatus) 
-			{
-				// Если заказ начат по операциям
-				if (serverStatus == 'active') 
-				{
-					return OrderStatus.inProgress;
-				}
-				// Иначе ожидает
-				else if (serverStatus == 'pending' || serverStatus == 'joinery')
-				{
-					return OrderStatus.pending;
-				}
-				else
-				{
-					return OrderStatus.notDefined;
-				}
-			}*/
-
 			final status = WorkplaceStatus.determineStatus(json['workplaceOrderStatus']);
 
 			// Оптимизация 1: Используем локальные переменные для часто используемых полей
-			final rowId = json['Row ID'];
-			final deadline = json['Deadline'] as String?;
+			final rowId = json['id'] ?? json['Row ID'];
+			final deadline = json['ready_date'] ?? json['Deadline'] as String?;
 			final changeDateStr = json['Дата изменения'] as String?;
 			
 			// Оптимизация 2: Отложенный парсинг дат (parse только если нужно)
@@ -121,20 +75,20 @@ class OrderInProduct
 			
 			return OrderInProduct(
 				id: rowId?.toString() ?? '',
-				orderId: json['ID заказа']?.toString() ?? '',
-				orderNumber: json['Name']?.toString() ?? '',
+				orderId: json['order_id']?.toString() ?? json['ID заказа']?.toString() ?? '',
+				orderNumber: json['order_number']?.toString() ?? json['Name']?.toString() ?? '',
 				readyDate: parseDate(deadline),
-				winCount: (json['WindowCount'] ?? 0) as int,
-				winArea: (json['WindowArea'] ?? 0.0).toDouble(),
-				plateCount: (json['PlateCount'] ?? 0) as int,
-				plateArea: (json['PlateArea'] ?? 0.0).toDouble(),
-				econom: (json['Econom'] ?? false) as bool,
-				claim: (json['Claim'] ?? false) as bool,
-				onlyPayed: (json['OnlyPayed'] ?? false) as bool,
+				winCount: TypeConverter.toInt(json['window_count'] ?? json['WindowCount']),
+				winArea: TypeConverter.toDouble(json['window_area'] ?? json['WindowArea']),
+				plateCount: TypeConverter.toInt(json['plate_count'] ?? json['PlateCount']),
+				plateArea: TypeConverter.toDouble(json['plate_area'] ?? json['PlateArea']),
+				econom: TypeConverter.toBool(json['is_econom'] ?? json['Econom']),
+				claim: TypeConverter.toBool(json['is_claim'] ?? json['Claim']),
+				onlyPayed: TypeConverter.toBool(json['is_only_paid'] ?? json['OnlyPayed']),
 				lumber: json['Брус']?.toString() ?? '',
 				glazingBead: json['Штапик']?.toString() ?? '',
-				twoSidePaint: (json['Двухсторонняя покраска'] == "Да"),
-				workplaceId: json['ID статуса']?.toString() ?? '',
+				twoSidePaint: TypeConverter.toBool(json['Двухсторонняя покраска']),
+				workplaceId: json['workplace_id']?.toString() ?? json['ID статуса']?.toString() ?? '',
 				changeDate: parseDate(changeDateStr),
 				comment: json['Примечания']?.toString() ?? '',
 				//operations: orderOperations,

@@ -16,8 +16,8 @@ class User
         
         return User(
             id: json['id'] as String? ?? json['Row ID'] as String? ?? '',
-            email: json['Email'] as String? ?? '',
-            name: json['Наименование'] as String? ?? json['Наименование'] as String? ?? 'Без имени',
+            email: json['email'] as String? ?? json['Email'] as String? ?? '',
+            name: json['name'] as String? ?? json['Наименование'] as String? ?? 'Без имени',
         );
     }
 }

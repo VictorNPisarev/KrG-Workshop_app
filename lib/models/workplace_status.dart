@@ -14,8 +14,7 @@ class WorkplaceStatus
 	{
 		return WorkplaceStatus
 		(
-
-			name: json['name'] as String,
+			name: json['workplaceName'] ?? json['name'] as String,
 			status: determineStatus(json['status']),
 		);
 	}
