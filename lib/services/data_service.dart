@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../config/route_config.dart';
 import '../models/order_in_product.dart';
 import '../models/order_trace.dart';
 import '../models/user.dart';
@@ -435,13 +436,12 @@ class DataService
 
 			try 
 			{
-				var baseUrl = _baseUrl;
-				var headers = {'Content-Type': 'text/plain;charset=utf-8'};
-				var bodyContext = {};
+				http.Response response;
 				
 				if (_isGASServer)
 				{
-					bodyContext = {
+					var headers = {'Content-Type': 'text/plain;charset=utf-8'};
+					final bodyContext = {
 						'action': action,
 						'payload': {
 						'orderInProductId': orderId,
@@ -451,12 +451,26 @@ class DataService
 						'source': '${PlatformUtils.platform} API',	// источник
 						}
 					};
+
+					final uri = Uri.parse(_baseUrl);
+					print('URI: ${uri.toString()}');
+
+					final body = json.encode(bodyContext);
+					print('body: ${body.toString()}');
+
+					response = await client
+						.post(
+						uri,
+						headers: headers,
+						body: body,
+						)
+						.timeout(const Duration(seconds: 20));
+
 				}
 				else
 				{
-					baseUrl = '$_baseUrl$action';
-					headers = {'Content-Type': 'application/json'};
-					bodyContext = {
+					final Map<String, dynamic> params = 
+					{
 						'productionOrderId': orderId,
 						'workplaceId': workplaceId,
 						'userId': userId,
@@ -464,38 +478,31 @@ class DataService
 						'status': status.name,
 						'source': '${PlatformUtils.platform} API',	// источник
 					};
+
+					response = await _postNodeServer(action, params: params);
 				}
 				
-				final uri = Uri.parse(baseUrl);
-				print('URI: ${uri.toString()}');
-
-				final body = json.encode(bodyContext);
-				print('body: ${body.toString()}');
-
-				final response = await client
-					.post(
-					uri,
-					headers: headers,
-					body: body,
-					)
-					.timeout(const Duration(seconds: 20));
-
 				print('📥 Ответ сервера: ${response.statusCode}');
 
 				// Если 302 или 200 - считаем успехом
-				if (response.statusCode == 200 || response.statusCode == 302) {
-				print('✅ Заказ обновлен на сервере');
-				return {'success': true, 'message': 'OK'};
+				if (response.statusCode == 200 || response.statusCode == 302)
+				{
+					print('✅ Заказ обновлен на сервере');
+					return {'success': true, 'message': 'OK'};
 				}
 
 				return {'success': false, 'message': 'HTTP ${response.statusCode}'};
-			} finally {
+			}
+			finally
+			{
 				client.close();
 			}
-		} catch (e) {
-		print('⚠️ Ошибка сети, но продолжаем работу: $e');
-		// Для пилота - возвращаем успех даже при ошибке
-		return {'success': true, 'message': 'Обновлено локально'};
+		}
+		catch (e)
+		{
+			print('⚠️ Ошибка сети, но продолжаем работу: $e');
+			// Для пилота - возвращаем успех даже при ошибке
+			return {'success': false, 'message': '$e'};
 		}
 	}
 
@@ -513,38 +520,6 @@ class DataService
 			return _isGASServer ? _getGAS(action, params: params) : _getNodeServer(action, params: params);
 		}
 	}
-
-	static Future<http.Response> _callAPI(String action, {Map<String, dynamic>? params}) async
-	{
-		final client = http.Client();
-		try
-		{
-			final body = json.encode({
-				'action': action,
-				'params': params ?? {},
-			});
-			
-			print('📤 Вызов API: $action');
-			print('📤 URL: $_baseUrl');
-			
-			final response = await client
-					.post(
-						Uri.parse(_baseUrl),
-						headers: {'Content-Type': 'application/json'},
-						body: body,
-					)
-					.timeout(_timeoutDuration);
-			
-			print('📥 Статус: ${response.statusCode}');
-		
-			return response;
-		}
-		finally
-		{
-			client.close();
-		}
-	}
-
 	
 	static Future<http.Response> _postGAS(String action, {Map<String, dynamic>? params}) async 
 	{
@@ -639,26 +614,9 @@ class DataService
 	{
 		try
 		{
-			final baseUrl = '$_baseUrl$action';
-			// Начинаем с action
-			String queryString = '';
-			
-			// Добавляем все параметры
-			if (params != null)
-			{
-				params.forEach((key, value)
-				{
-					// URL-кодируем ключи и значения
-					final encodedKey = Uri.encodeQueryComponent(key);
-					final encodedValue = Uri.encodeQueryComponent(value.toString());
-					queryString += '&$encodedKey=$encodedValue';
-				});
-
-				queryString = queryString.substring(1);
-			}
-
-			// Формируем полный URL
-			final Uri uri = Uri.parse('$baseUrl?$queryString');
+			// Строим URL по конфигурации
+			final urlPath = RouteConfig.buildUrl(action, params: params);
+			final uri = Uri.parse('$_baseUrl$urlPath');
 			
 			print('📤 GET запрос: $uri');
 			
@@ -671,16 +629,55 @@ class DataService
 			
 			if (response.statusCode == 200) 
 			{
-			return response;
+				return response;
 			} 
 			else 
 			{
-			throw Exception('HTTP ${response.statusCode}');
+				throw Exception('HTTP ${response.statusCode}');
 			}
 		}
 		catch (e)
 		{
-			print('❌ Ошибка в _getGAS: $e');
+			print('❌ Ошибка в _getNodeServer: $e');
+			rethrow;
+		}
+	}
+
+	static Future<http.Response> _postNodeServer(String action, {Map<String, dynamic>? params}) async 
+	{
+		try
+		{
+			final urlPath = RouteConfig.buildUrl(action, params: params);
+			final uri = Uri.parse('$_baseUrl$urlPath');
+			
+			final body = json.encode(params);
+			
+			print('📤 POST запрос: $uri');
+			print('📤 Body: $body');
+			
+			final response = await http
+				.post(
+					uri,
+					headers: {'Content-Type': 'application/json'},
+					body: body,
+				)
+				.timeout(_timeoutDuration);
+			
+			print('📥 Ответ сервера: ${response.statusCode}');
+			print('📥 Ответ сервера: ${response.body}');
+			
+			if (response.statusCode == 200) 
+			{
+				return response;
+			} 
+			else 
+			{
+				throw Exception('HTTP ${response.statusCode}');
+			}
+		}
+		catch (e)
+		{
+			print('❌ Ошибка в _postNodeServer: $e');
 			rethrow;
 		}
 	}

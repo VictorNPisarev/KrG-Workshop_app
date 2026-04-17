@@ -21,7 +21,7 @@ class AppConfig
 	// Тестовая конфигурация (Node.js)
 	static const AppConfig development = AppConfig(
 		name: 'Node.js (Local)',
-		apiUrl: 'http://192.168.0.179:3000/api/',
+		apiUrl: 'http://192.168.0.179:3000/api',
 		isProduction: false,
 	);
 

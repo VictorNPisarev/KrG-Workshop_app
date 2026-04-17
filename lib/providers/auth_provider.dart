@@ -157,7 +157,7 @@ class AuthProvider extends ChangeNotifier
             await _loadUserWorkplaces(user.id);
             
             // Сохраняем сессию если нужно
-            if (rememberMe)
+            if (rememberMe && _availableWorkplaces.isNotEmpty)
             {
                 await _saveSession(email);
             }

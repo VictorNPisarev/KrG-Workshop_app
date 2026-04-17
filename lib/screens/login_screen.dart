@@ -24,6 +24,8 @@ class _LoginScreenState extends State<LoginScreen>
 	bool _rememberMe = true;
 	String? _error;
 	String _currentServerName = '';
+	bool _autoLoginAttempted = false;
+
 
 	@override
 	void initState()
@@ -47,6 +49,10 @@ class _LoginScreenState extends State<LoginScreen>
 	// Проверяем сохраненный email
 	Future<void> _checkSavedEmail() async
 	{
+		// Защита от повторного вызова
+		if (_autoLoginAttempted) return;
+		_autoLoginAttempted = true;
+
 		final authProvider = context.read<AuthProvider>();
 		
 		// Пробуем получить email с устройства
@@ -75,6 +81,8 @@ class _LoginScreenState extends State<LoginScreen>
 		else
 		{
 			print('ℹ️ Нет сохраненного email');
+			_autoLoginAttempted = false;
+
 			return;
 		}
 			
@@ -87,12 +95,14 @@ class _LoginScreenState extends State<LoginScreen>
 		Navigator.push(
 			context,
 			MaterialPageRoute(builder: (context) => const SettingsScreen()),
-		).then((_) async {
+		).then((_) async 
+		{
 			// После возврата из настроек обновляем информацию о сервере
 			await _loadCurrentServer();
 			// Очищаем поле email, чтобы пользователь ввёл заново
-			_emailController.clear();
-			setState(() {
+			//_emailController.clear();
+			setState(() 
+			{
 				_error = null;
 			});
 		});
@@ -306,10 +316,21 @@ class _LoginScreenState extends State<LoginScreen>
 		{
 			final authProvider = context.read<AuthProvider>();
 			await authProvider.loginWithEmail(email, rememberMe: _rememberMe);
+
+			// Сброс флага при успешном входе
+			_autoLoginAttempted = false;
 		}
 		catch (e)
 		{
 			if (!mounted) return;
+
+			// При ошибке очищаю сохранённую сессию
+			final authProvider = context.read<AuthProvider>();
+			await authProvider.logout(keepSession: false);
+			
+			// Сбрасываю флаг, чтобы можно было повторить попытку
+			_autoLoginAttempted = false;
+
 			setState(() => _error = 'Ошибка: $e');
 		}
 		finally
