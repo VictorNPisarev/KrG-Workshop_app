@@ -37,7 +37,6 @@ class AuthProvider extends ChangeNotifier
 		
 		_isLoading = true;
 		_error = null;
-		notifyListeners();
 		
 		print('🔄 AuthProvider.initialize: НАЧАЛО');
 		
