@@ -580,10 +580,11 @@ class DataService
 					'action': action,
 					'payload':
 					{
-						'orderId': orderId,
+						'orderInProductId': orderId,
 						'workplaceId': workplaceId,
 						'userId': userId,
 						'reason': reason,
+						'source': '${PlatformUtils.platform} API',  // источник
 					},
 				};
 			}

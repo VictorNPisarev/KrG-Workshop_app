@@ -199,19 +199,45 @@ import '../providers/auth_provider.dart';
 									// Новая кнопка "Заблокировать" (всегда доступна, но с отдельным стилем)
 									SizedBox(
 										width: MediaQuery.of(context).size.width * 0.2,
-										child: OutlinedButton(
-											style: OutlinedButton.styleFrom(
-												foregroundColor: Colors.red,
-												side: const BorderSide(color: Colors.red),
-												padding: const EdgeInsets.symmetric(vertical: 16),
-												shape: RoundedRectangleBorder(
-													borderRadius: BorderRadius.circular(8),
-												),
+										child: IconButton(
+											iconSize: 48,
+											padding: EdgeInsets.zero,
+											constraints: const BoxConstraints(),
+											icon: const Icon(
+												Icons.block,
+												color: Colors.red,
+												size: 48,
 											),
 											onPressed: () => _blockOrder(currentOrder),
-											child: const Icon(Icons.block, size: 28),
+											tooltip: 'Пропустить заказ',
 										),
-									),								],
+									),
+									/*SizedBox(
+										width: MediaQuery.of(context).size.width * 0.2,
+										child: ElevatedButton.icon(
+											icon: const Icon(Icons.block_flipped),
+											label: const Text('Пропустить'),//const Text('Завершить'),
+											style: ElevatedButton.styleFrom(
+												backgroundColor: Colors.red,
+												padding: const EdgeInsets.symmetric(vertical: 16),
+											),
+											onPressed: () => _blockOrder(currentOrder),
+										),
+
+										//child: OutlinedButton(
+											//style: OutlinedButton.styleFrom(
+											//	foregroundColor: Colors.red,
+											//	side: const BorderSide(color: Colors.red),
+											//	padding: const EdgeInsets.symmetric(vertical: 16),
+											//	shape: RoundedRectangleBorder(
+											//		borderRadius: BorderRadius.circular(8),
+											//	),
+											//),
+											//onPressed: () => _blockOrder(currentOrder),
+											//child: const Icon(Icons.block, size: 28),
+										//),
+									),*/
+								],
 							),
 						),
 										// Индикатор загрузки
@@ -388,7 +414,7 @@ import '../providers/auth_provider.dart';
 			return showDialog<String>(
 				context: context,
 				builder: (context) => AlertDialog(
-					title: const Text('Причина блокировки заказа'),
+					title: const Text('Причина пропуска заказа'),
 					content: TextField(
 						controller: controller,
 						decoration: const InputDecoration(
@@ -406,7 +432,7 @@ import '../providers/auth_provider.dart';
 						ElevatedButton(
 							onPressed: () => Navigator.pop(context, controller.text),
 							style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-							child: const Text('Заблокировать'),
+							child: const Text('Пропустить'),
 						),
 					],
 				),
@@ -437,16 +463,17 @@ import '../providers/auth_provider.dart';
 							_buildInfoRow('Площадь щитовых:', '${order.plateArea} м²'),
 							_buildConditionalInfoRow('Эконом:', order.econom, 'Эконом-заказ', Colors.orange),
 							_buildConditionalInfoRow('Рекламация:', order.claim, 'Рекламация!', Colors.red),
-							_buildConditionalInfoRow('Только оплаченные:', order.onlyPayed, 'Оплачен, не запущен', Colors.green),										],
+							_buildConditionalInfoRow('Только оплаченные:', order.onlyPayed, 'Оплачен, не запущен', Colors.green),
+						],
 					),
 				),
 			);
 		}
 		
-		Widget _buildStatusCard(OrderInProduct orderInProduct)
+		Widget _buildStatusCard(OrderInProduct order)
 		{
 			return Card(
-				color: _getStatusColor(orderInProduct.status).withOpacity(0.1),
+				color: _getStatusColor(order.status).withOpacity(0.1),
 				child: Padding(
 					padding: const EdgeInsets.all(16),
 					child: Column(
@@ -464,10 +491,10 @@ import '../providers/auth_provider.dart';
 								children: [
 									Chip(
 										label: Text(
-											orderInProduct.status.displayName,
+											order.status.displayName,
 											style: const TextStyle(color: Colors.white),
 										),
-										backgroundColor: _getStatusColor(orderInProduct.status),
+										backgroundColor: _getStatusColor(order.status),
 									),
 									/*const Spacer(),
 									Text(
@@ -479,10 +506,49 @@ import '../providers/auth_provider.dart';
 							Padding(
 								padding: const EdgeInsets.only(top: 8),
 								child: Text(
-									'Изменен: ${_formatDate(orderInProduct.changeDate)}',
+									'Изменен: ${_formatDate(order.changeDate)}',
 									style: const TextStyle(color: Colors.indigo),
 								),
 							),
+							// Блок блокировки
+							if (order.isBlocked)
+								Container(
+									margin: const EdgeInsets.only(top: 12),
+									padding: const EdgeInsets.all(12),
+									decoration: BoxDecoration(
+									color: Colors.red.shade50,
+									borderRadius: BorderRadius.circular(8),
+									border: Border.all(color: Colors.red.shade200),
+									),
+									child: Row(
+									children: [
+										const Icon(Icons.block, color: Colors.red),
+										const SizedBox(width: 12),
+										Expanded(
+										child: Column(
+											crossAxisAlignment: CrossAxisAlignment.start,
+											children: [
+											const Text(
+												'Нет возможности выполнить',
+												style: TextStyle(
+												fontWeight: FontWeight.bold,
+												color: Colors.red,
+												),
+											),
+											if (order.allReasons != null)
+												Text(
+												'${order.allReasons}',
+												style: const TextStyle(
+													fontSize: 12,
+													color: Colors.red,
+												),
+												),
+											],
+										),
+										),
+									],
+									),
+								),
 						],
 					),
 				),
