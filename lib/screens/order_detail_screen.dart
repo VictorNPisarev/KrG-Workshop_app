@@ -52,7 +52,7 @@ import '../providers/auth_provider.dart';
 			// Получаем актуальную версию заказа при каждом build
 			final ordersProvider = context.watch<OrdersProvider>();
 			final authProvider = context.watch<AuthProvider>();
-			final currentUser = authProvider.currentUser;  // ← ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
+			final currentUser = authProvider.currentUser;	// ← ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ
 
 			final currentOrder = ordersProvider.getOrderById(widget.orderId) ?? _currentOrder;
 			
@@ -78,7 +78,7 @@ import '../providers/auth_provider.dart';
 				currentOrder.workplaceId == ordersProvider.currentWorkplace?.id;*/
 		
 
-			return  Scaffold(
+			return	Scaffold(
 				appBar: AppBar(
 					title: Row(
 						children: [
@@ -134,7 +134,7 @@ import '../providers/auth_provider.dart';
 								),
 							),
 					],
-				),  
+				),	
 				body: Column(
 					children: [
 						Expanded(
@@ -194,6 +194,49 @@ import '../providers/auth_provider.dart';
 												onPressed: () => _completeOrder(context, currentOrder, currentUser!.id),
 											),
 										),
+										
+									const SizedBox(width: 16),
+									// Новая кнопка "Заблокировать" (всегда доступна, но с отдельным стилем)
+									SizedBox(
+										width: MediaQuery.of(context).size.width * 0.2,
+										child: IconButton(
+											iconSize: 48,
+											padding: EdgeInsets.zero,
+											constraints: const BoxConstraints(),
+											icon: const Icon(
+												Icons.block,
+												color: Colors.red,
+												size: 48,
+											),
+											onPressed: () => _blockOrder(currentOrder),
+											tooltip: 'Пропустить заказ',
+										),
+									),
+									/*SizedBox(
+										width: MediaQuery.of(context).size.width * 0.2,
+										child: ElevatedButton.icon(
+											icon: const Icon(Icons.block_flipped),
+											label: const Text('Пропустить'),//const Text('Завершить'),
+											style: ElevatedButton.styleFrom(
+												backgroundColor: Colors.red,
+												padding: const EdgeInsets.symmetric(vertical: 16),
+											),
+											onPressed: () => _blockOrder(currentOrder),
+										),
+
+										//child: OutlinedButton(
+											//style: OutlinedButton.styleFrom(
+											//	foregroundColor: Colors.red,
+											//	side: const BorderSide(color: Colors.red),
+											//	padding: const EdgeInsets.symmetric(vertical: 16),
+											//	shape: RoundedRectangleBorder(
+											//		borderRadius: BorderRadius.circular(8),
+											//	),
+											//),
+											//onPressed: () => _blockOrder(currentOrder),
+											//child: const Icon(Icons.block, size: 28),
+										//),
+									),*/
 								],
 							),
 						),
@@ -339,6 +382,63 @@ import '../providers/auth_provider.dart';
 			);
 		}
 
+		Future<void> _blockOrder(OrderInProduct order) async
+		{
+			final authProvider = Provider.of<AuthProvider>(context, listen: false);
+			final workplace = authProvider.currentWorkplace;
+			final userId = authProvider.currentUser?.id;
+
+			if (workplace == null || userId == null)
+			{
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(content: Text('Ошибка: не определён участок'), backgroundColor: Colors.red),
+				);
+				return;
+			}
+
+			final reason = await _showReasonDialog();
+			if (reason == null) return;
+
+			final ordersProvider = context.read<OrdersProvider>();
+			await ordersProvider.blockOrder(
+				orderId: order.id,
+				workplaceId: workplace.id,
+				userId: userId,
+				reason: reason,
+			);
+		}
+
+		Future<String?> _showReasonDialog() async
+		{
+			final controller = TextEditingController();
+			return showDialog<String>(
+				context: context,
+				builder: (context) => AlertDialog(
+					title: const Text('Причина пропуска заказа'),
+					content: TextField(
+						controller: controller,
+						decoration: const InputDecoration(
+							hintText: 'Укажите причину',
+							border: OutlineInputBorder(),
+						),
+						maxLines: 3,
+						autofocus: true,
+					),
+					actions: [
+						TextButton(
+							onPressed: () => Navigator.pop(context, null),
+							child: const Text('Отмена'),
+						),
+						ElevatedButton(
+							onPressed: () => Navigator.pop(context, controller.text),
+							style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+							child: const Text('Пропустить'),
+						),
+					],
+				),
+			);
+		}
+
 		Widget _buildInfoCard(OrderInProduct order)
 		{
 			return Card(
@@ -363,16 +463,17 @@ import '../providers/auth_provider.dart';
 							_buildInfoRow('Площадь щитовых:', '${order.plateArea} м²'),
 							_buildConditionalInfoRow('Эконом:', order.econom, 'Эконом-заказ', Colors.orange),
 							_buildConditionalInfoRow('Рекламация:', order.claim, 'Рекламация!', Colors.red),
-							_buildConditionalInfoRow('Только оплаченные:', order.onlyPayed, 'Оплачен, не запущен', Colors.green),                    ],
+							_buildConditionalInfoRow('Только оплаченные:', order.onlyPayed, 'Оплачен, не запущен', Colors.green),
+						],
 					),
 				),
 			);
 		}
 		
-		Widget _buildStatusCard(OrderInProduct orderInProduct)
+		Widget _buildStatusCard(OrderInProduct order)
 		{
 			return Card(
-				color: _getStatusColor(orderInProduct.status).withOpacity(0.1),
+				color: _getStatusColor(order.status).withOpacity(0.1),
 				child: Padding(
 					padding: const EdgeInsets.all(16),
 					child: Column(
@@ -390,10 +491,10 @@ import '../providers/auth_provider.dart';
 								children: [
 									Chip(
 										label: Text(
-											orderInProduct.status.displayName,
+											order.status.displayName,
 											style: const TextStyle(color: Colors.white),
 										),
-										backgroundColor: _getStatusColor(orderInProduct.status),
+										backgroundColor: _getStatusColor(order.status),
 									),
 									/*const Spacer(),
 									Text(
@@ -405,10 +506,49 @@ import '../providers/auth_provider.dart';
 							Padding(
 								padding: const EdgeInsets.only(top: 8),
 								child: Text(
-									'Изменен: ${_formatDate(orderInProduct.changeDate)}',
+									'Изменен: ${_formatDate(order.changeDate)}',
 									style: const TextStyle(color: Colors.indigo),
 								),
 							),
+							// Блок блокировки
+							if (order.isBlocked)
+								Container(
+									margin: const EdgeInsets.only(top: 12),
+									padding: const EdgeInsets.all(12),
+									decoration: BoxDecoration(
+									color: Colors.red.shade50,
+									borderRadius: BorderRadius.circular(8),
+									border: Border.all(color: Colors.red.shade200),
+									),
+									child: Row(
+									children: [
+										const Icon(Icons.block, color: Colors.red),
+										const SizedBox(width: 12),
+										Expanded(
+										child: Column(
+											crossAxisAlignment: CrossAxisAlignment.start,
+											children: [
+											const Text(
+												'Нет возможности выполнить',
+												style: TextStyle(
+												fontWeight: FontWeight.bold,
+												color: Colors.red,
+												),
+											),
+											if (order.allReasons != null)
+												Text(
+												'${order.allReasons}',
+												style: const TextStyle(
+													fontSize: 12,
+													color: Colors.red,
+												),
+												),
+											],
+										),
+										),
+									],
+									),
+								),
 						],
 					),
 				),

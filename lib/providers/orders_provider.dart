@@ -269,6 +269,43 @@ import '../models/workplace_status.dart';
 		}
 	}
 
+	//Отправляю флаг блокировки заказа
+	Future<void> blockOrder({required String orderId, required String workplaceId, required String userId, required String reason, }) async
+	{
+		if (_isLoading) return;
+		
+		_isLoading = true;
+		notifyListeners();
+		
+		try
+		{
+			final result = await DataService.blockOrder(
+				orderId: orderId,
+				workplaceId: workplaceId,
+				userId: userId,
+				reason: reason,
+			);
+			
+			if (result['success'] == true)
+			{
+				_showSuccessNotification('Заказ заблокирован');
+			}
+			else
+			{
+				_showErrorNotification('Ошибка: ${result['message']}');
+			}
+		}
+		catch (e)
+		{
+			_showErrorNotification('Ошибка: $e');
+		}
+		finally
+		{
+			_isLoading = false;
+			notifyListeners();
+		}
+	}
+
 	// Вспомогательные методы для уведомлений
 	void _showSuccessNotification(String message) {
 		print('✅ $message');

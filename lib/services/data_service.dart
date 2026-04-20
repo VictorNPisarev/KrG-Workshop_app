@@ -558,4 +558,66 @@ class DataService
 			return [];
 		}
 	}
+
+	static Future<Map<String, dynamic>> blockOrder({required String orderId, required String workplaceId, required String userId, required String reason,}) async
+	{
+		try
+		{
+			print('🚫 Блокировка заказа: $orderId на участке $workplaceId');
+			print('	 Причина: $reason');
+
+			final action = 'blockOrderWorkplace';
+			//final isGAS = _currentBaseUrl.contains('script.google.com');
+
+			final Map<String, dynamic> body;
+			String url;
+
+//			if (isGAS)
+			{
+				url = _baseUrl;
+				body =
+				{
+					'action': action,
+					'payload':
+					{
+						'orderInProductId': orderId,
+						'workplaceId': workplaceId,
+						'userId': userId,
+						'reason': reason,
+						'source': '${PlatformUtils.platform} API',  // источник
+					},
+				};
+			}
+//			else
+//			{
+//				url = '$_baseUrl/$action';
+//				body = {
+//					'orderId': orderId,
+//					'workplaceId': workplaceId,
+//					'userId': userId,
+//					'reason': reason,
+//				};
+//			}
+
+			final response = await http.post(
+				Uri.parse(url),
+				headers: {'Content-Type': 'application/json'},
+				body: json.encode(body),
+			).timeout(const Duration(seconds: 10));
+
+			if (response.statusCode == 200)
+			{
+				return {'success': true, 'message': 'OK'};
+			}
+			else
+			{
+				return {'success': false, 'message': 'HTTP ${response.statusCode}'};
+			}
+		}
+		catch (e)
+		{
+			print('⚠️ Ошибка блокировки: $e');
+			return {'success': false, 'message': e.toString()};
+		}
+	}
 }
