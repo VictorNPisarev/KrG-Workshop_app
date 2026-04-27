@@ -432,7 +432,11 @@ import '../providers/orders_provider.dart';
 							child: const Text('Отмена'),
 						),
 						ElevatedButton(
-							onPressed: () => Navigator.pop(context, controller.text),
+							onPressed: () //=> Navigator.pop(context, controller.text),
+							{
+								Navigator.pop(context, controller.text); 
+								Navigator.pop(context);
+							},
 							style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
 							child: const Text('ОК'),
 						),
