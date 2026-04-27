@@ -416,7 +416,7 @@ import '../providers/auth_provider.dart';
 			return showDialog<String>(
 				context: context,
 				builder: (context) => AlertDialog(
-					title: const Text('Причина пропуска заказа'),
+					title: const Text('Причина, препятствующая выполнению'),
 					content: TextField(
 						controller: controller,
 						decoration: const InputDecoration(
@@ -434,7 +434,7 @@ import '../providers/auth_provider.dart';
 						ElevatedButton(
 							onPressed: () => Navigator.pop(context, controller.text),
 							style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-							child: const Text('Пропустить'),
+							child: const Text('ОК'),
 						),
 					],
 				),
