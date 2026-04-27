@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 class WorkplaceStatus 
 {
-	final String name;
+	final String workplaceId;
+	final String workplaceName;
 	final OrderStatus status; // 'planned', 'active', 'completed'
 
 	WorkplaceStatus({
-		required this.name,
+		required this.workplaceId,
+		required this.workplaceName,
 		required this.status,
 	});
 
@@ -14,8 +16,8 @@ class WorkplaceStatus
 	{
 		return WorkplaceStatus
 		(
-
-			name: json['name'] as String,
+			workplaceId:  json['id'] as String,
+			workplaceName: json['name'] as String,
 			status: determineStatus(json['status']),
 		);
 	}

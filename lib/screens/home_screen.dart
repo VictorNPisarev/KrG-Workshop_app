@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 																		),
 														],
 												),
-										),                   
+										),
 																				const Divider(),
 										
 										// Переключение участков
