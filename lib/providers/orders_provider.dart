@@ -206,7 +206,8 @@ import '../models/workplace_status.dart';
 	}
 
 	// Взять заказ в работу (оптимистичное обновление)
-	Future<void> takeOrderToWork(OrderInProduct order, String userId) async {
+	Future<void> takeOrderToWork(OrderInProduct order, String userId) async
+	{
 		if (_currentWorkplace == null) return;
 
 		// Немедленно обновляем локально
@@ -216,6 +217,8 @@ import '../models/workplace_status.dart';
 		workplaceId: _currentWorkplace!.id,
 		);
 
+		_isLoading = true;
+		_isRefreshing = true;
 		_updateOrderInLists(updatedOrder);
 		notifyListeners();
 
@@ -223,7 +226,13 @@ import '../models/workplace_status.dart';
 		_showSuccessNotification('Заказ ${order.orderNumber} взят в работу');
 
 		// Отправляем на сервер в фоне
-		_sendUpdateToServer(order, OrderStatus.inProgress, userId);
+		await _sendUpdateToServer(order, OrderStatus.inProgress, userId);
+
+		await refreshOrders();
+
+		_isRefreshing = false;
+		_isLoading = false;
+		notifyListeners();
 	}
 
 	// Завершить заказ (оптимистичное обновление)
@@ -279,6 +288,7 @@ import '../models/workplace_status.dart';
 		
 		try
 		{
+			_isRefreshing = true;
 			final result = await DataService.blockOrder(
 				orderId: orderId,
 				workplaceId: workplaceId,
@@ -288,6 +298,7 @@ import '../models/workplace_status.dart';
 			
 			if (result['success'] == true)
 			{
+				await refreshOrders();
 				_showSuccessNotification('Заказ заблокирован');
 			}
 			else
@@ -301,6 +312,7 @@ import '../models/workplace_status.dart';
 		}
 		finally
 		{
+			_isRefreshing = false;
 			_isLoading = false;
 			notifyListeners();
 		}

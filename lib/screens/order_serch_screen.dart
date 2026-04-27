@@ -2,8 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:workshop_app/models/order_trace.dart';
 import 'package:workshop_app/services/data_service.dart';
+import 'package:workshop_app/models/order_in_product.dart';
+import 'package:workshop_app/providers/auth_provider.dart';
+import 'package:workshop_app/providers/orders_provider.dart';
+import 'package:provider/provider.dart';
 
 import '../models/workplace_status.dart';
+
 
 class OrderSearchScreen extends StatefulWidget 
 {
@@ -70,6 +75,125 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 		}
 	}
 
+	Future<void> _forceTakeOrder(OrderTrace trace) async 
+	{
+		final authProvider = Provider.of<AuthProvider>(context, listen: false);
+		final workplace = authProvider.currentWorkplace;
+		final userId = authProvider.currentUser?.id;
+		
+		if (workplace == null || userId == null) 
+		{
+			if (mounted) 
+			{
+				ScaffoldMessenger.of(context).showSnackBar(
+					const SnackBar(
+						content: Text('Не удалось определить участок или пользователя'),
+						backgroundColor: Colors.red,
+					),
+				);
+			}
+			return;
+		}
+
+		// Диалог подтверждения
+		final confirmed = await showDialog<bool>(
+			context: context,
+			builder: (context) => AlertDialog(
+				title: const Text('Принудительное взятие заказа'),
+				content: Text(
+					'Вы уверены, что хотите взять заказ "${trace.orderNumber}" '
+					'на участок "${workplace.name}"?\n\n'
+					'⚠️ Это действие обойдёт стандартную цепочку участков!',
+				),
+				actions: [
+					TextButton(
+						onPressed: () => Navigator.pop(context, false),
+						child: const Text('Отмена'),
+					),
+					ElevatedButton(
+						onPressed: () => Navigator.pop(context, true),
+						style: ElevatedButton.styleFrom(
+							backgroundColor: Colors.orange,
+						),
+						child: const Text('Взять в работу'),
+					),
+				],
+			),
+		);
+
+		if (confirmed != true) return;
+
+		// Показываем ширму (как в HomeScreen)
+		showDialog(
+			context: context,
+			barrierDismissible: false,
+			builder: (context) => PopScope(
+				canPop: false, // блокируем кнопку "назад"
+				child: Container(
+					color: Colors.black.withValues(alpha: 0.3),
+					child: const Center(
+						child: Column(
+							mainAxisSize: MainAxisSize.min,
+							children: [
+								CircularProgressIndicator(),
+								SizedBox(height: 16),
+								Text(
+									'Взятие заказа в работу...',
+									style: TextStyle(color: Colors.white, inherit: false, fontSize: 14),
+								),
+							],
+						),
+					),
+				),
+			),
+		);
+
+		try 
+		{
+			// 1. Отправляем запрос на сервер
+			await DataService.updateOrderStatus(
+				orderId: trace.productionOrderId,
+				workplaceId: workplace.id,
+				userId: userId,
+				status: OrderStatus.inProgress,
+				comment: 'Принудительное взятие в обход (администратор)',
+			);
+			
+			// 2. Обновляем OrdersProvider (всегда, без проверки mounted)
+			final ordersProvider = Provider.of<OrdersProvider>(context, listen: false);
+			await ordersProvider.refreshOrdersWithFeedback();
+			
+			// 3. Закрываем индикатор загрузки
+			if (mounted) 
+			{
+				Navigator.pop(context); // закрываем индикатор
+				
+				// 4. Закрываем экран поиска
+				Navigator.pop(context); // закрываем OrderSearchScreen
+				
+				// 5. Показываем успех на главном экране
+				ScaffoldMessenger.of(context).showSnackBar(
+					SnackBar(
+						content: Text('✅ Заказ "${trace.orderNumber}" взят в работу'),
+						backgroundColor: Colors.green,
+					),
+				);
+			}
+		} 
+		catch (e) 
+		{
+			if (mounted) 
+			{
+				ScaffoldMessenger.of(context).showSnackBar(
+					SnackBar(
+						content: Text('❌ Ошибка: $e'),
+						backgroundColor: Colors.red,
+					),
+				);
+			}
+		}
+	}
+	
 	@override
 	Widget build(BuildContext context) 
 	{
@@ -228,6 +352,13 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 
 	Widget _buildOrderTraceCard(OrderTrace trace) 
 	{
+		final authProvider = Provider.of<AuthProvider>(context);
+		final currentWorkplace = authProvider.currentWorkplace;
+		
+		// Проверяем, можно ли взять заказ на текущий участок
+		final canForceTake = currentWorkplace != null && 
+			trace.canForceTake(currentWorkplace.id);
+
 		return Card(
 			margin: const EdgeInsets.symmetric(vertical: 8),
 			shape: RoundedRectangleBorder(
@@ -237,9 +368,20 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 				title: Row(
 					children: [
 						Expanded(
-							child: Text(
-								'Заказ: ${trace.orderNumber}',
-								style: const TextStyle(fontWeight: FontWeight.bold),
+							child: RichText(
+								text: TextSpan(
+									style: TextStyle(fontSize: 18, color: Colors.black),
+									children: [
+										const TextSpan(
+											text: 'Заказ: ',
+											style: TextStyle(fontWeight: FontWeight.normal),
+										),
+										TextSpan(
+											text: trace.orderNumber,
+											style: const TextStyle(fontWeight: FontWeight.bold),
+										),
+									],
+								),
 							),
 						),
 						Container(
@@ -248,10 +390,10 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 								color: Colors.grey.shade200,
 								borderRadius: BorderRadius.circular(16),
 							),
-							/*child: Text(
+							child: Text(
 								_formatDate(trace.readyDate),
 								style: const TextStyle(fontSize: 12),
-							),*/
+							),
 						),
 					],
 				),
@@ -259,11 +401,10 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 					padding: const EdgeInsets.only(top: 4),
 					child: Text(
 						'Готовность: ${_formatDate(trace.readyDate)}',
-						style: TextStyle(fontSize: 14, color: const Color.fromARGB(255, 49, 49, 49)),
+						style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
 					),
 				),
-				children: 
-				[
+				children: [
 					Padding(
 						padding: const EdgeInsets.all(16),
 						child: Column(
@@ -278,6 +419,25 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 							],
 						),
 					),
+					if (canForceTake)
+						Padding(
+							padding: const EdgeInsets.all(16),
+							child: SizedBox(
+								width: double.infinity,
+								child: ElevatedButton.icon(
+									icon: const Icon(Icons.play_arrow),
+									label: const Text('Взять в работу (в обход)'),
+									style: ElevatedButton.styleFrom(
+										backgroundColor: Colors.orange,
+										padding: const EdgeInsets.symmetric(vertical: 12),
+										shape: RoundedRectangleBorder(
+											borderRadius: BorderRadius.circular(8),
+										),
+									),
+									onPressed: () => _forceTakeOrder(trace),
+								),
+							),
+						),
 				],
 			),
 		);
@@ -300,7 +460,7 @@ class _OrderSearchScreenState extends State<OrderSearchScreen>
 					),
 					Expanded(
 						child: Text(
-							wp.name,
+							wp.workplaceName,
 							style: const TextStyle(fontSize: 15),
 						),
 					),

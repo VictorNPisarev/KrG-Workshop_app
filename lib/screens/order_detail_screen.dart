@@ -1,10 +1,10 @@
-	import 'package:flutter/material.dart';
-	import 'package:provider/provider.dart';
-	import '../models/order_in_product.dart';
-	import '../models/workplace.dart';
-	import '../models/workplace_status.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/order_in_product.dart';
+import '../models/workplace.dart';
+import '../models/workplace_status.dart';
 import '../providers/auth_provider.dart';
-	import '../providers/orders_provider.dart';
+import '../providers/orders_provider.dart';
 
 	class OrderDetailScreen extends StatefulWidget
 	{
@@ -432,7 +432,11 @@ import '../providers/auth_provider.dart';
 							child: const Text('Отмена'),
 						),
 						ElevatedButton(
-							onPressed: () => Navigator.pop(context, controller.text),
+							onPressed: () //=> Navigator.pop(context, controller.text),
+							{
+								Navigator.pop(context, controller.text); 
+								Navigator.pop(context);
+							},
 							style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
 							child: const Text('ОК'),
 						),
