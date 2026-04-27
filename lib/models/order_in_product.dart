@@ -1,7 +1,8 @@
-	import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import 'order_block.dart';
 import 'workplace_status.dart';
+import 'order_attribute.dart';
 
 class OrderInProduct
 	{
@@ -32,6 +33,8 @@ class OrderInProduct
 		final bool isBlocked;
 		final List<OrderBlock> blocks;
 
+		final List<OrderAttribute> attributes;
+
 		String? get lastReason => blocks.isNotEmpty ? blocks.last.reason : null;
 		String? get allReasons => blocks.map((b) => b.reason).join('\r\n ');
 
@@ -61,6 +64,7 @@ class OrderInProduct
 			this.blocks = const [],
 			this.operations,
 			this.status = OrderStatus.pending,
+			this.attributes = const [],
 		});
 		
 		factory OrderInProduct.fromJson(Map<String, dynamic> json)
@@ -72,6 +76,7 @@ class OrderInProduct
 			final deadline = json['Deadline'] as String?;
 			final changeDateStr = json['Дата изменения'] as String?;
 			final blocksList = json['blocks'] as List? ?? [];
+			final attributesList = json['attributes'] as List? ?? [];
 			
 			// Оптимизация 2: Отложенный парсинг дат (parse только если нужно)
 			DateTime parseDate(String? dateStr) {
@@ -106,6 +111,7 @@ class OrderInProduct
 				status: status,
 				isBlocked: (json['isBlocked'] ?? false) as bool,//TypeConverter.toBool(json['isBlocked']),
 				blocks: blocksList.map((b) => OrderBlock.fromJson(b)).toList(),
+				attributes: attributesList.map((a) => OrderAttribute.fromJson(a)).toList(),
 			);
 		}
 		

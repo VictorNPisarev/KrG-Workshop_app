@@ -145,6 +145,8 @@ import '../providers/auth_provider.dart';
 									children: [
 										_buildInfoCard(currentOrder),
 										const SizedBox(height: 16),
+										_buildAttributesCard(currentOrder), // ← добавить
+										const SizedBox(height: 16),
 										_buildStatusCard(currentOrder),
 										const SizedBox(height: 16),
 										_buildProductDetailsCard(currentOrder),
@@ -456,6 +458,7 @@ import '../providers/auth_provider.dart';
 							),
 							const Divider(),
 							_buildInfoRow('Номер заказа:', order.orderNumber),
+
 							_buildInfoRow('Срок исполнения:', _formatDate(order.readyDate)),
 							_buildInfoRow('Количество окон:', '${order.winCount} шт'),
 							_buildInfoRow('Площадь окон:', '${order.winArea} м²'),
@@ -641,6 +644,54 @@ import '../providers/auth_provider.dart';
 						),
 					],
 				),
+			);
+		}
+
+		Widget _buildAttributesCard(OrderInProduct order) 
+		{
+			if (order.attributes.isEmpty) return const SizedBox.shrink();
+
+			return Card(
+			child: Padding(
+				padding: const EdgeInsets.all(16),
+				child: Column(
+				crossAxisAlignment: CrossAxisAlignment.start,
+				children: [
+					Wrap(
+					spacing: 8,
+					runSpacing: 8,
+					children: order.attributes.map((attr)
+					{
+						return Tooltip(
+							message: attr.displayText,
+							child: Container(
+								padding: const EdgeInsets.symmetric(
+								horizontal: 10,
+								vertical: 6,
+								),
+								decoration: BoxDecoration(
+								color: Colors.grey.shade100,
+								borderRadius: BorderRadius.circular(20),
+								border: Border.all(color: Colors.grey.shade300),
+								),
+								child: Row(
+								mainAxisSize: MainAxisSize.min,
+								children: [
+									Text(attr.icon, style: const TextStyle(fontSize: 18)),
+									const SizedBox(width: 6),
+									Text(
+									attr.displayText,
+									style: const TextStyle(fontSize: 13),
+									),
+								],
+								),
+							),
+						);
+					}).toList(),
+					),
+				],
+				),
+			),
 			);
 		}
 
