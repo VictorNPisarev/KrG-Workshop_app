@@ -15,8 +15,10 @@ class OrderTableWidget extends StatelessWidget {
 	});
 
 	@override
-	Widget build(BuildContext context) {
-		if (orders.isEmpty) {
+	Widget build(BuildContext context)
+	{
+		if (orders.isEmpty)
+		{
 			return _buildEmptyState();
 		}
 
@@ -26,10 +28,10 @@ class OrderTableWidget extends StatelessWidget {
 				scrollDirection: Axis.horizontal,
 				child: DataTable(
 					showCheckboxColumn: false,
-					columnSpacing: 20,
-					horizontalMargin: 12,
+					columnSpacing: 12,
+					horizontalMargin: 8,
 					columns: _buildTableColumns(),
-					rows: _buildTableRows(),
+					rows: _buildTableRows(context),
 				),
 			),
 		);
@@ -42,6 +44,10 @@ class OrderTableWidget extends StatelessWidget {
 					'№ Заказа',
 					style: TextStyle(fontWeight: FontWeight.bold),
 				),
+			),
+			DataColumn(
+				label: const Text('📌', style: TextStyle(fontWeight: FontWeight.bold)),
+				tooltip: 'Признак',
 			),
 			DataColumn(
 				label: Text(
@@ -64,16 +70,16 @@ class OrderTableWidget extends StatelessWidget {
 		];
 	}
 
-	List<DataRow> _buildTableRows() {
+	List<DataRow> _buildTableRows(BuildContext context) {
 		return orders.map((order) {
 			return DataRow(
-				cells: _buildRowCells(order),
+				cells: _buildRowCells(order, context),
 				onSelectChanged: (_) => onOrderSelected(order),
 			);
 		}).toList();
 	}
 
-	List<DataCell> _buildRowCells(OrderInProduct order)
+	List<DataCell> _buildRowCells(OrderInProduct order, BuildContext context)
 	{
 		// Определяем символы для претензий и щитовых изделий
 		String prefix = '';
@@ -101,7 +107,25 @@ class OrderTableWidget extends StatelessWidget {
 						),
 					],
 				),
-			),      DataCell(Text(_formatDate(order.readyDate))),
+			),
+			DataCell(
+				Row(
+					//mainAxisSize: MainAxisSize.min,
+					children: order.attributes.map((attr) 
+					{
+						return Tooltip(
+									message: attr.displayText,
+									preferBelow: false,
+									child: Container(
+										margin: const EdgeInsets.only(right: 4),
+										padding: const EdgeInsets.all(2),
+										child: Text(attr.icon, style: const TextStyle(fontSize: 18)),
+									),
+									);
+					}).toList(),
+				),
+			),
+			DataCell(Text(_formatDate(order.readyDate))),
 			DataCell(Text('${order.winCount} шт')),
 			DataCell(
 				Chip(
